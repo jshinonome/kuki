@@ -19,12 +19,8 @@ config = config_util.load_config()
 registry = config.get("registry", "http://0.0.0.0:4873/")
 token = config.get("token", "")
 
-global_repo_path = (
-    Path(os.getenv("KUKIPATH")) if os.getenv("KUKIPATH") else Path.joinpath(Path.home(), "kuki")
-)
-
-global_cache_path = Path.joinpath(global_repo_path, ".cache")
-global_index_path = Path.joinpath(global_repo_path, ".index")
+global_cache_path = Path.joinpath(config_util.global_kuki_root, ".cache")
+global_index_path = Path.joinpath(config_util.global_kuki_root, ".index")
 
 kuki_json = package_util.load_kuki()
 
@@ -206,7 +202,7 @@ def get_tar_name(name: str, version: str):
 
 
 def get_pkg_path(name: str, version: str):
-    return Path.joinpath(global_repo_path, name, version)
+    return Path.joinpath(config_util.global_kuki_root, name, version)
 
 
 def get_pkg_id(metadata: Metadata):

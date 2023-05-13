@@ -20,23 +20,27 @@ def tmp_dir(tmp_path_factory: pytest.TempPathFactory, monkeypatch: pytest.Monkey
     home = Path.joinpath(dir, "home")
     home.mkdir(parents=True, exist_ok=True)
 
-    config_util.config_path = Path.joinpath(home, config_util.config_file)
-    global_repo_path = Path.joinpath(home, "kuki")
-    global_repo_path.mkdir(parents=True, exist_ok=True)
-    registry_util.global_repo_path = global_repo_path
+    global_kuki_root = Path.joinpath(home, "kuki")
+    global_kuki_root.mkdir(parents=True, exist_ok=True)
+    config_util.global_kuki_root = global_kuki_root
 
-    global_cache_path = Path.joinpath(global_repo_path, ".cache")
+    config_util.global_config_dir = Path.joinpath(config_util.global_kuki_root, "config")
+
+    config_util.global_config_dir.mkdir(parents=True, exist_ok=True)
+    config_util.global_config_path = Path.joinpath(config_util.global_config_dir, config_util.config_file)
+
+    global_cache_path = Path.joinpath(global_kuki_root, ".cache")
     global_cache_path.mkdir(parents=True, exist_ok=True)
     registry_util.global_cache_path = global_cache_path
 
-    global_index_path = Path.joinpath(global_repo_path, ".index")
+    global_index_path = Path.joinpath(global_kuki_root, ".index")
     registry_util.global_index_path = global_index_path
 
     dummy_package = Path.joinpath(dir, "dummy")
     dummy_package.mkdir(parents=True, exist_ok=True)
 
     package_util.package_path = dummy_package
-    package_util.kuki_config_path = Path.joinpath(dummy_package, package_util.config_file)
+    package_util.package_config_path = Path.joinpath(dummy_package, package_util.config_file)
     monkeypatch.chdir(dummy_package)
 
     registry_util.package_index = package_util.load_pkg_index()
@@ -295,7 +299,7 @@ def test_publish(monkeypatch: pytest.MonkeyPatch):
     tar.close()
 
     # test includes
-    with open(package_util.kuki_include_path, "w") as file:
+    with open(package_util.package_include_path, "w") as file:
         file.writelines(["conf*", ""])
 
     run_kuki("--publish")
@@ -389,7 +393,7 @@ def test_install(
     for pkg_id in expected_index:
         assert pkg_id in global_index
         name, version = pkg_id.split("@")
-        pkg_dir = Path.joinpath(registry_util.global_repo_path, name, version)
+        pkg_dir = Path.joinpath(config_util.global_kuki_root, name, version)
         assert Path.joinpath(pkg_dir, package_util.config_file).exists()
 
     pkg_index = package_util.load_pkg_index()
@@ -450,7 +454,7 @@ def test_uninstall(
     for pkg_id in expected_index:
         assert pkg_id in global_index
         name, version = pkg_id.split("@")
-        pkg_dir = Path.joinpath(registry_util.global_repo_path, name, version)
+        pkg_dir = Path.joinpath(config_util.global_kuki_root, name, version)
         assert Path.joinpath(pkg_dir, package_util.config_file).exists()
 
     pkg_index = package_util.load_pkg_index()

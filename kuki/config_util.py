@@ -1,13 +1,22 @@
 import json
 import logging
+import os
 from pathlib import Path
 from typing import TypedDict
 
 logger = logging.getLogger()
 
-config_file = ".kukirc.json"
+global_kuki_root = (
+    Path(os.getenv("KUKIPATH")) if os.getenv("KUKIPATH") else Path.joinpath(Path.home(), "kuki")
+)
 
-config_path = Path.joinpath(Path.home(), config_file)
+global_config_dir = Path.joinpath(global_kuki_root, "config")
+
+global_config_dir.mkdir(parents=True, exist_ok=True)
+
+config_file = "kukirc.json"
+
+global_config_path = Path.joinpath(global_config_dir, config_file)
 
 
 class Kukirc(TypedDict):
@@ -16,12 +25,12 @@ class Kukirc(TypedDict):
 
 
 def load_config() -> Kukirc:
-    if not Path.exists(config_path):
-        with open(config_path, "w") as file:
+    if not Path.exists(global_config_path):
+        with open(global_config_path, "w") as file:
             file.write(json.dumps({}))
         return {}
     else:
-        with open(config_path, "r") as file:
+        with open(global_config_path, "r") as file:
             return json.load(file)
 
 
@@ -34,5 +43,5 @@ def update_config(field: str, value: str):
 
 def dump_config(config: Kukirc):
     logger.info("persist update to .kukirc")
-    with open(config_path, "w") as file:
+    with open(global_config_path, "w") as file:
         file.write(json.dumps(config, indent=2))
