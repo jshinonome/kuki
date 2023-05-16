@@ -35,13 +35,13 @@ def load_config() -> Kukirc:
 
 
 def update_config(field: str, value: str):
-    logger.info("update '{}' of .kukirc".format(field))
+    logger.info("update '{}' of {}".format(field, config_file))
     kukirc = load_config()
     kukirc[field] = value
     dump_config(kukirc)
 
 
 def dump_config(config: Kukirc):
-    logger.info("persist update to .kukirc")
+    logger.info("persist update to {}".format(config_file))
     with open(global_config_path, "w") as file:
         file.write(json.dumps(config, indent=2))
