@@ -19,15 +19,15 @@ config = config_util.load_config()
 registry = config.get("registry", "http://0.0.0.0:4873/")
 token = config.get("token", "")
 
-global_cache_path = Path.joinpath(config_util.global_kuki_root, ".cache")
+global_cache_dir = Path.joinpath(config_util.global_kuki_root, "_cache")
 global_index_path = Path.joinpath(config_util.global_kuki_root, ".index")
 
 kuki_json = package_util.load_kuki()
 
-if global_cache_path.exists() and not global_cache_path.is_dir():
-    os.remove(str(global_cache_path))
+if global_cache_dir.exists() and not global_cache_dir.is_dir():
+    os.remove(str(global_cache_dir))
 
-global_cache_path.mkdir(parents=True, exist_ok=True)
+global_cache_dir.mkdir(parents=True, exist_ok=True)
 
 user_url = registry + "-/user/org.couchdb.user:"
 search_url = registry + "-/v1/search?text={}"
@@ -238,7 +238,7 @@ def is_cached(tar_name: str) -> bool:
 
 
 def get_cached_filepath(tar_name) -> str:
-    return str(Path.joinpath(global_cache_path, tar_name))
+    return str(Path.joinpath(global_cache_dir, tar_name))
 
 
 def download_entry(name: str):

@@ -10,7 +10,7 @@ global_kuki_root = (
     Path(os.getenv("KUKIPATH")) if os.getenv("KUKIPATH") else Path.joinpath(Path.home(), "kuki")
 )
 
-global_config_dir = Path.joinpath(global_kuki_root, "config")
+global_config_dir = Path.joinpath(global_kuki_root, "_config")
 
 global_config_dir.mkdir(parents=True, exist_ok=True)
 

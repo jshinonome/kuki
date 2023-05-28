@@ -1,7 +1,5 @@
 .kuki.importedModules:("";"");
 
-.kuki.index: .j.k (,/) read0 `:kuki_index.json;
-
 .kuki.appendSlash:{$[not "/"=last x;:x,"/";x]};
 
 .kuki.joinPath:{[path;subPaths]
@@ -33,6 +31,8 @@
   .kuki.importModule modulePath
  };
 
+.kuki.index: .j.k (,/) @[read0;`:kuki_index.json;{"{}"}];
+
 .kuki.importGlobal:{[module]
   subPaths: "/" vs module;
   moduleName: `$first subPaths;
@@ -41,10 +41,14 @@
   .kuki.importModule path
  };
 
-// format - import {"moduleName/[folder/]/module"}
+// global import - import {"moduleName/[folder/]/module"}
+// local import - import {"./[folder/]/module"}
 // module doesn't include .q
 import:{[moduleFunc]
   module: moduleFunc[];
   path: first -3#value moduleFunc;
+  path: 1_string first ` vs hsym `$path;
   $[module like "./*"; .kuki.importLocal[path;module];.kuki.importGlobal[module]]
  };
+
+import {"./cli"};

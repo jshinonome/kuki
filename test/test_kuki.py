@@ -27,11 +27,13 @@ def tmp_dir(tmp_path_factory: pytest.TempPathFactory, monkeypatch: pytest.Monkey
     config_util.global_config_dir = Path.joinpath(config_util.global_kuki_root, "config")
 
     config_util.global_config_dir.mkdir(parents=True, exist_ok=True)
-    config_util.global_config_path = Path.joinpath(config_util.global_config_dir, config_util.config_file)
+    config_util.global_config_path = Path.joinpath(
+        config_util.global_config_dir, config_util.config_file
+    )
 
     global_cache_path = Path.joinpath(global_kuki_root, ".cache")
     global_cache_path.mkdir(parents=True, exist_ok=True)
-    registry_util.global_cache_path = global_cache_path
+    registry_util.global_cache_dir = global_cache_path
 
     global_index_path = Path.joinpath(global_kuki_root, ".index")
     registry_util.global_index_path = global_index_path
