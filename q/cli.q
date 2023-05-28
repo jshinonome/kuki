@@ -6,7 +6,7 @@
   .cli.options,:(name;dataType;defaultTypedValue;description);
  };
 
-.cli.parse:{[params]
+.cli.Parse:{[params]
   options: .Q.opt $[all 10h=type each (),params;params;.z.x];
   args: .Q.def[exec name!defaultValue from .cli.options where name<>`help] options;
   boolOptions: key[options] inter exec name from .cli.options where -1h=type each defaultValue;
@@ -31,26 +31,26 @@
   .cli.add[name;dataType;(),defaultValue;description];
  };
 
-.cli.boolean:.cli.add[;`boolean];
-.cli.float:.cli.add[;`float];
-.cli.long:.cli.add[;`long];
-.cli.int:.cli.add[;`int];
-.cli.date:.cli.add[;`date];
-.cli.datetime:.cli.add[;`datetime];
-.cli.minute:.cli.add[;`minute];
-.cli.second:.cli.add[;`second];
-.cli.time:.cli.add[;`time];
-.cli.timestamp:.cli.add[;`timestamp];
-.cli.symbol:.cli.add[;`symbol];
+.cli.Boolean:.cli.add[;`boolean];
+.cli.Float:.cli.add[;`float];
+.cli.Long:.cli.add[;`long];
+.cli.Int:.cli.add[;`int];
+.cli.Date:.cli.add[;`date];
+.cli.Datetime:.cli.add[;`datetime];
+.cli.Minute:.cli.add[;`minute];
+.cli.Second:.cli.add[;`second];
+.cli.Time:.cli.add[;`time];
+.cli.Timestamp:.cli.add[;`timestamp];
+.cli.Symbol:.cli.add[;`symbol];
 
-.cli.booleans:.cli.addList[;`boolean];
-.cli.floats:.cli.addList[;`float];
-.cli.longs:.cli.addList[;`long];
-.cli.ints:.cli.addList[;`int];
-.cli.dates:.cli.addList[;`date];
-.cli.datetimes:.cli.addList[;`datetime];
-.cli.minutes:.cli.addList[;`minute];
-.cli.seconds:.cli.addList[;`second];
-.cli.times:.cli.addList[;`time];
-.cli.timestamps:.cli.addList[;`timestamp];
-.cli.symbols:.cli.addList[;`symbol];
+.cli.Booleans:.cli.addList[;`boolean];
+.cli.Floats:.cli.addList[;`float];
+.cli.Longs:.cli.addList[;`long];
+.cli.Ints:.cli.addList[;`int];
+.cli.Dates:.cli.addList[;`date];
+.cli.Datetimes:.cli.addList[;`datetime];
+.cli.Minutes:.cli.addList[;`minute];
+.cli.Seconds:.cli.addList[;`second];
+.cli.Times:.cli.addList[;`time];
+.cli.Timestamps:.cli.addList[;`timestamp];
+.cli.Symbols:.cli.addList[;`symbol];

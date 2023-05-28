@@ -9,7 +9,7 @@
   ]
  };
 
-.kuki.rootDir: {kukiRoot:getenv`KUKIPATH;$[count kukiRoot;kukiRoot;.kuki.joinPath[getenv`HOME;("kuki")]]}[];
+.kuki.rootDir:{kukiRoot:getenv`KUKIPATH;$[count kukiRoot;kukiRoot;.kuki.joinPath[getenv`HOME;("kuki")]]}[];
 
 
 .kuki.getRealPath:{[modulePath]
@@ -31,7 +31,7 @@
   .kuki.importModule modulePath
  };
 
-.kuki.index: .j.k (,/) @[read0;`:kuki_index.json;{"{}"}];
+.kuki.index:.j.k (,/) @[read0;`:kuki_index.json;{"{}"}];
 
 .kuki.importGlobal:{[module]
   subPaths: "/" vs module;
@@ -51,4 +51,5 @@ import:{[moduleFunc]
   $[module like "./*"; .kuki.importLocal[path;module];.kuki.importGlobal[module]]
  };
 
+import {"./log"};
 import {"./cli"};
