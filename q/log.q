@@ -5,22 +5,23 @@
 .log.errHandle:2;
 .log.temporalShortcut:`.z.Z;
 
-.log.json:{[level;msgs]
-  handle:$[level=`error;.log.errHandle;.log.stdHandle];
-
+.log.json:{[handle;level;msgs]
+  msg:$[0h=type msgs;" " sv .log.toString each msgs;.log.toString msgs];
+  (neg handle) .j.j `level`timestamp`message!(trim(level);value .log.temporalShortcut;msg);
  };
 
 .log.header:{[level]
   (string value .log.temporalShortcut), " ", level, " "
  };
 
-.log.plain:{[level;msgs]
-  handle:$[level~"ERROR";.log.errHandle;.log.stdHandle];
-  handle .log.header[level], $[0h=type msgs;" " sv .log.toString each msgs;.log.toString msgs], "\n";
+.log.plain:{[handle;level;msgs]
+  msg:$[0h=type msgs;" " sv .log.toString each msgs;.log.toString msgs];
+  (neg handle) .log.header[level], msg;
  };
 
 .log.log:{[level;msgs]
-  .log[.log.formatType][level;msgs];
+  handle:$[level~"ERROR";.log.errHandle;.log.stdHandle];
+  .log[.log.formatType][handle;level;msgs];
  };
 
 .log.Debug:.log.log["DEBUG"];
@@ -52,6 +53,12 @@
   shortcuts: `.z.T`.z.t`.z.Z`.z.z`.z.P`.z.p;
   if[not shortcut in shortcuts;'"Only support temporal types: ", -3!shortcuts];
   .log.temporalShortcut:shortcut;
+ };
+
+.log.SetLogFormatType:{[formatType]
+  formatTypes: `plain`json;
+  if[not formatType in formatTypes;'"Only support temporal types: ", -3!formatTypes];
+  .log.formatType:formatType;
  };
 
 .log.toString:{[msg]$[type[msg] in -10 10h;msg;-3!msg]};
