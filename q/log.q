@@ -4,10 +4,11 @@
 .log.stdHandle:1;
 .log.errHandle:2;
 .log.temporalShortcut:`.z.Z;
+.log.jsonHeader:()!();
 
 .log.json:{[handle;level;msgs]
   msg:$[0h=type msgs;" " sv .log.toString each msgs;.log.toString msgs];
-  (neg handle) .j.j `level`timestamp`message!(trim(level);value .log.temporalShortcut;msg);
+  (neg handle) .j.j .log.jsonHeader, `level`timestamp`message!(trim(level);value .log.temporalShortcut;msg);
  };
 
 .log.header:{[level]
@@ -44,7 +45,7 @@
  };
 
 .log.SetConsoleSize:{[consoleSize]
-  system"c ", " " sv string $[(::)~consoleSize;0 0i;consoleSize] | system"c";
+  system"c ", " " sv string $[-6 -6h~type each consoleSize;consoleSize;0 0i] | system"c";
  };
 
 .log.SetConsoleSize[25 320i];
@@ -59,6 +60,11 @@
   formatTypes: `plain`json;
   if[not formatType in formatTypes;'"Only support temporal types: ", -3!formatTypes];
   .log.formatType:formatType;
+ };
+
+.log.SetJsonHeader:{[header]
+  if[not 11h=type key header;'"Only allow symbol as json header key: ", -3!header];
+  .log.jsonHeader:header;
  };
 
 .log.toString:{[msg]$[type[msg] in -10 10h;msg;-3!msg]};
