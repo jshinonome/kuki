@@ -45,6 +45,7 @@
 // local import - import {"./[folder/]/module"}
 // module doesn't include .q
 import:{[moduleFunc]
+  if[100h<>type moduleFunc;'"requires format {\"module\"} for import"];
   module: moduleFunc[];
   path: first -3#value moduleFunc;
   path: 1_string first ` vs hsym `$path;
@@ -53,3 +54,12 @@ import:{[moduleFunc]
 
 import {"./log"};
 import {"./cli"};
+import {"./path"};
+
+.cli.Selection[`kScriptType;`krun`kest;"kuki script type"];
+
+.kuki.args:.cli.Parse[];
+
+import {"./",string .kuki.args`kScriptType};
+
+.cli.SetIgnore:`kScriptType;
