@@ -10,7 +10,7 @@ logging.basicConfig(level=logging.INFO, format=FORMAT, datefmt=DATE_FORMAT)
 
 logger = logging.getLogger()
 
-parser = argparse.ArgumentParser(description="Kdb Ultimate pacKage Installer CLI")
+parser = argparse.ArgumentParser(description="K Ultimate pacKage Installer CLI")
 
 group = parser.add_mutually_exclusive_group()
 
