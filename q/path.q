@@ -35,4 +35,4 @@
 
 .path.Home:{hsym `$getenv`HOME};
 
-.path.Cwd:{hsym `$system"pwd"};
+.path.Cwd:{hsym `$first system"pwd"};

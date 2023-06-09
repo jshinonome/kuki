@@ -28,7 +28,7 @@ import {"./path"};
 
 .kest.Describe:{[description;function]
   level: 1+last .kest.tests`level;
-  `.kest.tests upsert enlist (description;`DescribeEntry;level;function);
+  `.kest.tests upsert enlist (description;`Describe;level;function);
  };
 
 .kest.ToThrow:{[function;errorMsg]
@@ -60,13 +60,35 @@ import {"./path"};
 -1 "\033[0;32m✓";
 -1 "\033[1;31m☓";
 
-.kest.tests:flip`description`testType`level`function!"*SJ*"$\:();
+.kest.tests:1!flip`description`testType`level`function!"*SJ*"$\:();
 
-.kest.testFiles:();
+.kest.testResults:2!flip`file`description`result`errMsg:"S*S*"$\:();
+
+.kest.reset:{
+  .kest.tests:0#.kest.tests;
+ };
+
+.kest.testFile:{[file]
+  system"l ", 1_string file;
+
+ };
 
 / loop test folder and find all filename.test.q files
-.kest.run:{
-
+.kest.test:{
+  files: exec file from .path.Glob[`:.;"*test.q"];
+  $[.cli.args`debug;
+    .kest.testFile each files;
+    {[file]
+      @[.kest.testFile;file;
+        {
+          `kest.testResults upsert enlist (z;"";`failed;x);
+          .kest.setStyle`red;
+          -2 (string z), " failed with error - ", x;
+          -2 "  backtrace:";
+          -2 .Q.sbt y;
+        }[;;file]
+      ]}each files
+  ];
  };
 
 .kest.style:(!) . flip(
@@ -83,3 +105,8 @@ import {"./path"};
  };
 
 / -debug option
+.cli.Boolean[`debug;0b;"debug mode"];
+
+.cli.Parse[];
+
+.kest.test[];

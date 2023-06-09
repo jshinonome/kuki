@@ -58,8 +58,8 @@ import {"./path"};
 
 .cli.Selection[`kScriptType;`krun`kest;"kuki script type"];
 
-.kuki.args:.cli.Parse[];
+.cli.Parse[];
 
-import {"./",string .kuki.args`kScriptType};
+import {"./",string .cli.args`kScriptType};
 
 .cli.SetIgnore:`kScriptType;

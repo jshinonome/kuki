@@ -21,7 +21,7 @@
     '"Invalid selection options - ",( "," sv string selectionNames where fails)
   ];
   if[`help in key options;.cli.printHelp[];exit 0];
-  :args
+  :.cli.args:args
  };
 
 .cli.printHelp:{

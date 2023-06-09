@@ -1,7 +1,9 @@
 import argparse
+import json
 import logging
+from pathlib import Path
 
-from . import profile_util
+from .util import PROCESS_DEFAULT, generate_cmd
 
 FORMAT = "%(asctime)s %(levelname)s: %(message)s"
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
@@ -10,48 +12,9 @@ logging.basicConfig(level=logging.INFO, format=FORMAT, datefmt=DATE_FORMAT)
 
 logger = logging.getLogger()
 
-parser = argparse.ArgumentParser(description="K RUN CLI")
+kest_path = Path("kest.json")
 
-group = parser.add_mutually_exclusive_group()
-
-group.add_argument(
-    "--profile",
-    nargs="?",
-    default="default",
-    help="start kdb process using profile",
-)
-
-group.add_argument(
-    "--config",
-    nargs="?",
-    default="default",
-    help="config kdb process",
-)
-
-parser.add_argument(
-    "-b",
-    "--blocked",
-    action="store_true",
-    default=False,
-    help="block write-access for any handle context",
-)
-
-parser.add_argument(
-    "-r",
-    "--replicate",
-    default="",
-    help="replicate from :host:port",
-)
-
-parser.add_argument(
-    "-u",
-    "--disableSystemCmd",
-    dest="disable_system_cmd",
-    type=int,
-    default=0,
-    choices=[1],
-    help="blocks system functions and file access",
-)
+parser = argparse.ArgumentParser(description="K tEST CLI")
 
 parser.add_argument(
     "-i",
@@ -167,13 +130,33 @@ parser.add_argument(
 )
 
 
-def krun(args):
-    if args.config:
-        profile_util.config(args.config)
-    elif args.profile:
-        profile_util.start(args.profile)
+KEST_DEFAULT = {
+    "process": PROCESS_DEFAULT,
+    "environment": {
+        # source before running
+        "env_path": "",
+        "q_binary": "q",
+        "q_home": "",
+        "q_license_dir": "",
+    },
+}
+
+
+def kest(args):
+    # use kest.json if available
+    if args.init:
+        # generate kest.json
+        with open(kest_path, "w") as file:
+            json.dump(KEST_DEFAULT, file, indent=2)
+    else:
+        cmd = generate_cmd(args)
+
+        logger.info(args)
+
+        # generate run command
+        logger.info(cmd)
 
 
 def main():
     args = parser.parse_args()
-    krun(args)
+    kest(args)
