@@ -57,7 +57,7 @@ def test_parser():
             "30",
         ]
     )
-    assert generate_cmd(actual_args1) == [
+    expect_args = [
         "-e",
         1,
         "-g",
@@ -81,27 +81,5 @@ def test_parser():
         "-E",
         1,
     ]
-    assert generate_cmd(actual_args2) == [
-        "-e",
-        1,
-        "-g",
-        1,
-        "-w",
-        "30",
-        "-o",
-        "8",
-        "-p",
-        "1800",
-        "-P",
-        "3",
-        "-q",
-        "True",
-        "-s",
-        "3",
-        "-T",
-        "10",
-        "-t",
-        "1000",
-        "-E",
-        1,
-    ]
+    assert generate_cmd(actual_args1) == expect_args
+    assert generate_cmd(actual_args2) == expect_args
