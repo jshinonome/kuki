@@ -2,8 +2,9 @@ import argparse
 import json
 import logging
 from pathlib import Path
-
-from .util import PROCESS_DEFAULT, generate_cmd
+from typing import List
+import subprocess
+from .util import PROCESS_DEFAULT, generate_options
 
 FORMAT = "%(asctime)s %(levelname)s: %(message)s"
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
@@ -69,7 +70,7 @@ parser.add_argument(
     dest="offset_time",
     type=int,
     default=0,
-    help="offset from UTC",
+    help="offset from UTC in hours",
 )
 
 parser.add_argument(
@@ -149,12 +150,37 @@ def kest(args):
         with open(kest_path, "w") as file:
             json.dump(KEST_DEFAULT, file, indent=2)
     else:
-        cmd = generate_cmd(args)
-
-        logger.info(args)
-
+        options = generate_options(args)
         # generate run command
+        options = ["-kScriptType", "kest"] + options
+
+        cmd = generate_cmd(options)
         logger.info(cmd)
+        subprocess.run(cmd, shell=True, check=True)
+
+
+def generate_cmd(options: List[str]) -> str:
+    q_path = Path.joinpath(Path(__file__).parent, "q", "kuki.q").resolve()
+    kest_json = load_kest()
+    env_conf = kest_json.get("environment")
+    cmd = []
+    if env_conf:
+        if env_conf.get("env_path"):
+            cmd.append("source " + env_conf.get("env_path"))
+        if env_conf.get("q_home"):
+            cmd.append("export QHOME='{}'".format(env_conf.get("q_home")))
+        if env_conf.get("q_license_dir"):
+            cmd.append("export QLIC='{}'".format(env_conf.get("q_license_dir")))
+        if env_conf.get("q_binary"):
+            cmd.append(" ".join([env_conf.get("q_binary"), str(q_path), *options]))
+    return ";".join(cmd)
+
+
+def load_kest():
+    if kest_path.exists():
+        return json.loads(kest_path.read_text())
+    else:
+        return KEST_DEFAULT
 
 
 def main():

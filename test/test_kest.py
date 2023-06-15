@@ -1,7 +1,7 @@
 import logging
 
 from kuki.kest import parser
-from kuki.util import generate_cmd
+from kuki.util import generate_options
 
 logger = logging.getLogger(__name__)
 
@@ -59,9 +59,9 @@ def test_parser():
     )
     expect_args = [
         "-e",
-        1,
+        "1",
         "-g",
-        1,
+        "1",
         "-w",
         "30",
         "-o",
@@ -79,7 +79,7 @@ def test_parser():
         "-t",
         "1000",
         "-E",
-        1,
+        "1",
     ]
-    assert generate_cmd(actual_args1) == expect_args
-    assert generate_cmd(actual_args2) == expect_args
+    assert generate_options(actual_args1) == expect_args
+    assert generate_options(actual_args2) == expect_args

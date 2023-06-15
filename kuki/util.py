@@ -38,7 +38,7 @@ PROCESS_DEFAULT = {
 }
 
 
-def generate_cmd(args: Namespace) -> List[str]:
+def generate_options(args: Namespace) -> List[str]:
     input_args = vars(args)
     input_args.pop("init")
     cmd = []
@@ -49,11 +49,11 @@ def generate_cmd(args: Namespace) -> List[str]:
         cmd.append("-" + CMD_OPTION_MAP[key])
         arg = input_args[key]
         if key == "error_traps":
-            cmd.append(["none", "suspend", "dump"].index(arg))
+            cmd.append(str(["none", "suspend", "dump"].index(arg)))
         elif key == "garbage_collection":
-            cmd.append(["deferred", "immediate"].index(arg))
+            cmd.append(str(["deferred", "immediate"].index(arg)))
         elif key == "tls":
-            cmd.append(["plain", "mixed", "tls"].index(arg))
+            cmd.append(str(["plain", "mixed", "tls"].index(arg)))
         elif key == "consoleSize":
             cmd.append(" ".join([str(c) for c in arg]))
         elif key in ["quiet", "blocked"] and not arg:

@@ -10,6 +10,7 @@ setup(
         "console_scripts": [
             "kuki=kuki.kuki:main",
             "krun=kuki.krun:main",
+            "kest=kuki.kest:main",
         ],
     },
 )
