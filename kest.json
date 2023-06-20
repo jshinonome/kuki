@@ -1,0 +1,21 @@
+{
+  "process": {
+    "error_traps": "none",
+    "garbage_collection": "deferred",
+    "memory_limit": 0,
+    "offset_time": 0,
+    "port": 31800,
+    "precision": 7,
+    "quiet": false,
+    "threads": 0,
+    "timeout": 0,
+    "timer_period": 0,
+    "tls": "plain"
+  },
+  "environment": {
+    "env_path": "",
+    "q_binary": "rlwrap q",
+    "q_home": "",
+    "q_license_dir": ""
+  }
+}

@@ -1,5 +1,4 @@
-// https://docs.python.org/3/library/logging.html
-.log.level:`info;
+.log.level:`Info;
 .log.formatType:`plain;
 .log.stdHandle:1;
 .log.errHandle:2;
@@ -11,21 +10,17 @@
   (neg handle) .j.j .log.jsonHeader, `level`timestamp`message!(trim(level);value .log.temporalShortcut;msg);
  };
 
-.log.header:{[level]
-  (string value .log.temporalShortcut), " ", level, " "
- };
-
 .log.plain:{[handle;level;msgs]
   msg:$[0h=type msgs;" " sv .log.toString each msgs;.log.toString msgs];
-  (neg handle) .log.header[level], msg;
+  (neg handle) (string value .log.temporalShortcut)," ",level," ",msg;
  };
 
-.log.log:{[level;msgs]
+.log.log:{[level]
   handle:$[level~"ERROR";.log.errHandle;.log.stdHandle];
-  .log[.log.formatType][handle;level;msgs];
+  :.log[.log.formatType][handle;level];
  };
 
-.log.Debug:.log.log["DEBUG"];
+.log.Debug:{};
 
 .log.Info:.log.log["INFO "];
 
@@ -33,15 +28,25 @@
 
 .log.Error:.log.log["ERROR"];
 
+.log.refreshLogMethod:{
+  .log.Debug:.log.log["DEBUG"];
+  .log.Info:.log.log["INFO "];
+  .log.Warning:.log.log["WARN "];
+  .log.Error:.log.log["ERROR"];
+  .log.SetLogLevel .log.level;
+ };
+
 .log.SetStdLogFile:{[filepath]
   h:hopen filepath;
   .log.stdHandle:h;
   .log.errHandle:h;
+  .log.refreshLogMethod[];
  };
 
 .log.SetErrLogFile:{[filepath]
   h:hopen filepath;
   .log.errHandle:h;
+  .log.refreshLogMethod[];
  };
 
 .log.SetConsoleSize:{[consoleSize]
@@ -58,13 +63,22 @@
 
 .log.SetLogFormatType:{[formatType]
   formatTypes: `plain`json;
-  if[not formatType in formatTypes;'"Only support temporal types: ", -3!formatTypes];
+  if[not formatType in formatTypes;'"Only support log format types: ", -3!formatTypes];
   .log.formatType:formatType;
+  .log.refreshLogMethod[];
  };
 
 .log.SetJsonHeader:{[header]
   if[not 11h=type key header;'"Only allow symbol as json header key: ", -3!header];
   .log.jsonHeader:header;
+ };
+
+.log.SetLogLevel:{[level]
+  levels:`Debug`Info`Warning`Error;
+  i:levels?level;
+  / if log level is invalid, set level to debug
+  .log.level:$[i=count levels;`Debug;level];
+  @[`.log;levels@til levels? .log.level;:;{}];
  };
 
 .log.toString:{[msg]$[type[msg] in -10 10h;msg;-3!msg]};

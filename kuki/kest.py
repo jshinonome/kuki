@@ -1,9 +1,10 @@
 import argparse
 import json
 import logging
+import subprocess
 from pathlib import Path
 from typing import List
-import subprocess
+
 from .util import PROCESS_DEFAULT, generate_options
 
 FORMAT = "%(asctime)s %(levelname)s: %(message)s"
@@ -130,9 +131,14 @@ parser.add_argument(
     help="memory limit in MB",
 )
 
+kest_process_default = PROCESS_DEFAULT.copy()
+
+kest_process_default.pop("blocked")
+kest_process_default.pop("replicate")
+kest_process_default.pop("disable_system_cmd")
 
 KEST_DEFAULT = {
-    "process": PROCESS_DEFAULT,
+    "process": kest_process_default,
     "environment": {
         # source before running
         "env_path": "",
@@ -147,6 +153,9 @@ def kest(args):
     # use kest.json if available
     if args.init:
         # generate kest.json
+        if kest_path.exists():
+            logger.warn("kest.json already exists, skip...")
+            return
         with open(kest_path, "w") as file:
             json.dump(KEST_DEFAULT, file, indent=2)
     else:

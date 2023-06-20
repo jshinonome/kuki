@@ -43,6 +43,11 @@ def generate_options(args: Namespace) -> List[str]:
     input_args.pop("init")
     cmd = []
     for key, value in PROCESS_DEFAULT.items():
+        if key == "port":
+            cmd.append("-p")
+            cmd.append(str(input_args[key]))
+            continue
+
         if key not in input_args or value == input_args[key]:
             continue
 
