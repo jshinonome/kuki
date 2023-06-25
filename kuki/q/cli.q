@@ -11,14 +11,18 @@
 .cli.Parse:{[params]
   options:.Q.opt $[all 10h=type each (),params;params;.z.x];
   selectionNames:exec name from .cli.options where dataType=`selection;
-  defaults:(exec name!defaultValue from .cli.options where name<>`help, dataType<>`selection),
-    selectionNames!(count selectionNames)#`;
+  defaults:exec name!defaultValue from .cli.options where name<>`help;
+  defaults:@[defaults;selectionNames;first];
   args: .Q.def[defaults] options;
   boolOptions: key[options] inter exec name from .cli.options where -1h=type each defaultValue;
   if[count boolOptions;args:@[args;boolOptions;:;1b]];
   args:.cli.ignores _ args;
   if[any fails:not args[selectionNames]in'exec defaultValue from .cli.options where dataType=`selection;
     '"Invalid selection options - ",( "," sv string selectionNames where fails)
+  ];
+  stringOptions: key[options] inter exec name from .cli.options where dataType=`string;
+  if[count stringOptions;
+    args:@[args;stringOptions;string];
   ];
   if[`help in key options;.cli.printHelp[];exit 0];
   :.cli.args:args
@@ -45,8 +49,12 @@
  };
 
 .cli.Selection:{[name;selections;description]
-  defaultTypedValue: .[$;(`symbol;(),selections);{'" " sv ("failed to cast default value of";x;"-";y)}[string name]];
-  .cli.options,:(name;`selection;defaultTypedValue;description);
+  .cli.options,:(name;`selection;(),selections;description);
+ };
+
+.cli.String:{[name;defaultValue;description]
+  if[not type[defaultValue]in -10 10h;'"require char or chars data type for ",string name];
+  .cli.options,:(name;`string;`$defaultValue;description);
  };
 
 .cli.Boolean:.cli.add[;`boolean];

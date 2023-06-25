@@ -59,12 +59,17 @@ def generate_options(args: Namespace) -> List[str]:
             cmd.append(str(["deferred", "immediate"].index(arg)))
         elif key == "tls":
             cmd.append(str(["plain", "mixed", "tls"].index(arg)))
-        elif key == "consoleSize":
-            cmd.append(" ".join([str(c) for c in arg]))
         elif key in ["quiet", "blocked"] and not arg:
             cmd.remove("-" + CMD_OPTION_MAP[key])
         elif key == "replicate":
             cmd.append(arg)
         else:
             cmd.append(str(arg))
+    for key, value in input_args.items():
+        if key == "console_size":
+            cmd.append("-c")
+            cmd.append(" ".join([str(c) for c in value]))
+        elif key not in PROCESS_DEFAULT:
+            cmd.append("-" + key)
+            cmd.append("'{}'".format(input_args.get(key, "")))
     return cmd

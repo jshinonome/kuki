@@ -18,9 +18,9 @@
 
 .kest.Test["set correct format type";{
   .log.SetLogFormatType`json;
-  .kest.Match[`json;.log.formatType];
+  .kest.Match[`json;.log.formatType]
  }];
 
 .kest.Test["set wrong format type";{
-  .kest.ToThrow[(.log.SetLogFormatType;`dummy);"Only support log format types: "];
+  .kest.ToThrow[(.log.SetLogFormatType;`dummy);"Only support log format types: `plain`json"];
  }];

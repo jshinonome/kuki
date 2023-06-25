@@ -123,6 +123,34 @@ parser.add_argument(
 )
 
 parser.add_argument(
+    "--testRoot",
+    type=str,
+    default="test",
+    help="directory that kest use to search for test files in",
+)
+
+parser.add_argument(
+    "--testOutputFile",
+    type=str,
+    default="",
+    help="write test results to a file",
+)
+
+parser.add_argument(
+    "--testPattern",
+    type=str,
+    default="*",
+    help="run only tests with a name that matches the pattern",
+)
+
+parser.add_argument(
+    "--testFile",
+    type=str,
+    default="",
+    help="run specific test file",
+)
+
+parser.add_argument(
     "-w",
     "--memoryLimit",
     dest="memory_limit",
