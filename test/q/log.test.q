@@ -22,5 +22,5 @@
  }];
 
 .kest.Test["set wrong format type";{
-  .kest.ToThrow[(.log.SetLogFormatType;`dummy);"Only support log format types: `plain`json"];
+  .kest.ToThrow[(.log.SetLogFormatType;`dummy);"Only support log format types: `plain`json"]
  }];

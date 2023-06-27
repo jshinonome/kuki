@@ -62,4 +62,4 @@ import {"./path"};
 
 import {"./",string .cli.args`kScriptType};
 
-.cli.SetIgnore:`kScriptType;
+.cli.AppendIgnores`kScriptType;

@@ -19,6 +19,13 @@ kest_path = Path("kest.json")
 parser = argparse.ArgumentParser(description="K tEST CLI")
 
 parser.add_argument(
+    "--debug",
+    action="store_true",
+    default=False,
+    help="test in debug mode",
+)
+
+parser.add_argument(
     "-i",
     "--init",
     action="store_true",
@@ -193,7 +200,10 @@ def kest(args):
 
         cmd = generate_cmd(options)
         logger.info(cmd)
-        subprocess.run(cmd, shell=True, check=True)
+        try:
+            subprocess.run(cmd, shell=True, check=True)
+        except subprocess.CalledProcessError:
+            exit(1)
 
 
 def generate_cmd(options: List[str]) -> str:

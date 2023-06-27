@@ -32,9 +32,13 @@ import {"./path"};
 
 .kest.Match:{[expect;actual]
   if[not expect~actual;
-    -2 "  - expect: ", -3!expect;
-    -2 "  - actual: ", -3!actual;
-    '"not matched";
+    msg: "\n" sv (
+      "  Mismatch";
+      "    Expected: ", -3!expect;
+      "    Received: ", -3!actual
+    );
+    -2 .kest.getMsgByStyle[`red;msg];
+    'msg;
   ];
   :1b;
  };
@@ -57,91 +61,90 @@ import {"./path"};
 /   - expect:
 /   - actual:
 .kest.outputTestResults:{
-  files: exec file from .kest.testResults;
-
+  statusByFile:exec all status=`passed by file from .kest.testResults;
+  numFiles:count statusByFile;
+  numPassedFiles:`long$sum statusByFile;
+  -1 "test Files: ",(string numFiles)," total, ",(string numPassedFiles)," passed";
+  numTests:count .kest.testResults;
+  numPassedTests:`long$sum exec status=`passed from .kest.testResults;
+  -1 "tests:      ",(string numTests)," total, ",(string numPassedTests)," passed";
+  time:`long$(.z.P-.kest.startTime)%1e6;
+  -1 "time:       ",(string time),"ms";
+  if[not null .cli.args`testOutputFile;
+    (hsym .cli.args[`testOutputFile]) 0: enlist .j.j (!) . flip (
+      (`numFiles; numFiles);
+      (`numPassedFiles; numPassedFiles);
+      (`numFailedFiles; numFiles-numPassedFiles);
+      (`numTests; numTests);
+      (`numPassedTests; numPassedTests);
+      (`numFailedTests; numTests-numPassedTests);
+      (`time;time);
+      (`testResults;.kest.testResults)
+    );
+  ];
  };
 
 .kest.tests:2!enlist`file`description`testType`function!(`:.;"";`;(::));
 
-.kest.testResults:2!flip`file`description`result`errMsg!"S*S*"$\:();
+.kest.testResults:2!flip`file`description`status`errMsg`time!"S*S*J"$\:();
 
 .kest.reset:{
   .kest.tests:0#.kest.tests;
  };
 
-.kest.loadTest:{[file]
-  -1 "loading ", 1_string file;
-  .kest.currentFile:file;
-  system"l ", 1_string file;
-  -1 "collected ",(string count select from .kest.tests where testType=`Test), " items";
- };
-
-/ loop test folder and find all filename.test.q files
-.kest.run:{[root]
-  files:exec file from .path.Glob[root;"*test.q"];
-  if[not null .cli.args`testFile;
-    files:(),hsym .cli.args`testFile;
-  ];
-  $[.cli.args`debug;
-    .kest.loadTest each files;
-    {[file]
-      .Q.trp[.kest.loadTest;file;
-        {
-          `kest.testResults upsert enlist (z;"";`failed;x);
-          .kest.setStyle`red;
-          -2 (string z), " failed with error - ", x;
-          -2 "  backtrace:";
-          -2 .Q.sbt y;
-          .kest.setStyle`reset;
-        }[;;file]
-      ]}each files
-  ];
-  if[not .cli.args[`testPattern]~(),"*";
-    -1 "apply filter by pattern:", .cli.args[`testPattern];
-    .kest.tests:delete from .kest.tests where testType=`Test, not description like .cli.args`testPattern;
-  ];
-  files:exec distinct file from .kest.tests where testType=`Test;
-  .kest.runByFile each files;
-  .kest.outputTestResults[];
+.kest.loadTest:{[testFile]
+  -1 "loading ", 1_string testFile;
+  .kest.currentFile:testFile;
+  system"l ", 1_string testFile;
+  -1 "collected ",(string count select from .kest.tests where file=testFile, testType=`Test), " items\n";
  };
 
 .kest.runByFile:{
-  .kest.printStyle[`yellow;"RUNS"];
-  -1 " ",string x;
+  startTime:.z.P;
+  -1 .kest.getMsgByStyle[`yellow;"RUNS"]," ",string x;
   .kest.tests[(x;"BeforeAll");`function][];
   .kest.runByTest[x]each exec description from .kest.tests where file=x, testType=`Test;
   .kest.tests[(x;"AfterAll");`function][];
-  $[count select from .kest.testResults where file=x, result<>`passed;
-      [.kest.printStyle[`red;"FAIL"];-1 " ",string x];
-      [.kest.printStyle[`green;"PASS"];-1 " ",string x]
+  msg:" ",(string x)," (",(string `long$(.z.P-startTime)%1e6),"ms)\n";
+  $[count select from .kest.testResults where file=x, status<>`passed;
+      -2 .kest.getMsgByStyle[`red;"FAIL"],msg;
+      -1 .kest.getMsgByStyle[`green;"PASS"],msg
   ];
  };
 
 .kest.runByTest:{[file;description]
+  startTime:.z.P;
   .kest.tests[(file;"BeforeEach");`function][];
-  -1 (4#" "),"- ",description;
   testFunction:.kest.tests[(file;description);`function];
   result:$[
     .cli.args`debug;
       testFunction[];
       .Q.trp[testFunction;();
         {
-          .kest.setStyle`red;
-          -2 "'",z,"' failed with error - ",x;
-          -2 "  backtrace:";
-          -2 .Q.sbt y;
-          .kest.setStyle`reset;
-          x
+          if[x like "*Mismatch*";:x];
+          errMsg:"\n" sv ("'",z,"' failed with error - ",x;"  backtrace:";.Q.sbt y);
+          -2 .kest.getMsgByStyle[`red;errMsg];
+          errMsg
         }[;;description]
       ]
   ];
-  $[result~(::);
-      `.kest.testResults upsert enlist (file;description;`error;"test case should return boolean not null");
-    -1h<>type result;
-      `.kest.testResults upsert enlist (file;description;`error;-3!result);
-      `.kest.testResults upsert enlist (file;description;`failed`passed result;"")
-  ];
   .kest.tests[(file;"AfterEach");`function][];
+  usedTime:`long$(.z.P-startTime)%1e6;
+  status:$[result~1b;`passed;`failed];
+  errMsg:$[
+    1h=type result;
+      "";
+    10h=type result;
+      result;
+    (::)~result;
+      "test case should return boolean not null";
+      "expect boolean not ", -3!result
+  ];
+  `.kest.testResults upsert enlist (file;description;status;errMsg;usedTime);
+  $[status=`passed;
+      -1 " " sv (.kest.getMsgByStyle[`lightGreen;"✓"];description;"(",(string usedTime),"ms)");
+      -2 " " sv (.kest.getMsgByStyle[`lightRed;"✘"];description;"(",(string usedTime),"ms)")
+  ];
  };
 
 .kest.style:(!) . flip(
@@ -153,16 +156,46 @@ import {"./path"};
   (`lightCyan;  "\033[1;36m");
   (`yellow;     "\033[1;33m");
   (`purple;     "\033[0;35m");
-  (`purple;     "\033[0;35m");
   (`pink;       "\033[1;35m");
   (`green;      "\033[0;32m");
   (`lightGreen; "\033[1;32m");
   (`bold;       "\033[;1m")
  );
 
-.kest.printStyle:{[style;msg]
-  / reset style: "\033[0;0m"
-  1 (.kest.style style),msg,"\033[0;0m";
+.kest.getMsgByStyle:{[style;msg]
+  / reset style: "\033[0;;0m"
+  :(.kest.style style),msg,"\033[0;0m";
+ };
+
+/ loop test folder and find all filename.test.q files
+.kest.run:{[root]
+  .kest.startTime:.z.P;
+  files:exec file from .path.Glob[root;"*test.q"];
+  if[not null .cli.args`testFile;
+    files:(),hsym .cli.args`testFile;
+  ];
+  $[.cli.args`debug;
+    .kest.loadTest each files;
+    {[file]
+      .Q.trp[.kest.loadTest;file;
+        {
+          errMsg:"\n" sv ((string z), " failed to load with error - ", x;"  backtrace:";.Q.sbt y);
+          `kest.testResults upsert enlist (z;"";`failed;errMsg;0Nt);
+          -2 .kest.getMsgByStyle[`red;errMsg];
+          errMsg
+        }[;;file]
+      ]}each files
+  ];
+  if[not .cli.args[`testPattern]~(),"*";
+    -1 "apply filter by pattern:", .cli.args[`testPattern];
+    .kest.tests:delete from .kest.tests where testType=`Test, not description like .cli.args`testPattern;
+  ];
+  files:exec distinct file from .kest.tests where testType=`Test;
+  .kest.runByFile each files;
+  .kest.outputTestResults[];
+  if[not .cli.args`debug;
+    exit not all exec `passed=status from .kest.testResults;
+  ];
  };
 
 / -debug option
@@ -171,6 +204,8 @@ import {"./path"};
 .cli.Symbol[`testOutputFile;`;"write test results to a file"];
 .cli.String[`testPattern;"*";"run only tests with a name that matches the pattern"];
 .cli.Symbol[`testFile;`;"run specific test file"];
+.cli.SetName["K tEST CLI"];
 .cli.Parse[];
 
+.kest.startupPath:.path.Cwd[];
 .kest.run[hsym .cli.args`testRoot];

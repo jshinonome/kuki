@@ -21,6 +21,7 @@ CMD_OPTION_MAP = {
 
 
 PROCESS_DEFAULT = {
+    "console_size": [25, 80],
     "error_traps": "none",
     "garbage_collection": "deferred",
     "memory_limit": 0,
@@ -55,6 +56,8 @@ def generate_options(args: Namespace) -> List[str]:
         arg = input_args[key]
         if key == "error_traps":
             cmd.append(str(["none", "suspend", "dump"].index(arg)))
+        elif key == "console_size":
+            cmd.append(" ".join([str(c) for c in input_args[key]]))
         elif key == "garbage_collection":
             cmd.append(str(["deferred", "immediate"].index(arg)))
         elif key == "tls":
@@ -66,9 +69,9 @@ def generate_options(args: Namespace) -> List[str]:
         else:
             cmd.append(str(arg))
     for key, value in input_args.items():
-        if key == "console_size":
-            cmd.append("-c")
-            cmd.append(" ".join([str(c) for c in value]))
+        if key == "debug":
+            if value:
+                cmd.append("-debug")
         elif key not in PROCESS_DEFAULT:
             cmd.append("-" + key)
             cmd.append("'{}'".format(input_args.get(key, "")))

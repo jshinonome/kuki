@@ -18,7 +18,7 @@
 
 .path.IsFile:{0>type key .path.ToHsym x};
 
-.path.Exists:{0h<>key type .path.ToHsym x};
+.path.Exists:{0h<>type key .path.ToHsym x};
 
 .path.Remove:{hdel .path.ToHsym x};
 
