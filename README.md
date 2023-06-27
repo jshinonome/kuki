@@ -10,6 +10,8 @@
 
 ### Command: kuki
 
+K Ultimate pacKage Installer
+
 #### config
 
 use format 'field=value'
@@ -59,5 +61,27 @@ uninstall a package from current working package
 ```bash
 kuki --uninstall dummy
 ```
+
+### Command: kest
+
+K tEST CLI
+
+#### Define Test
+
+- `.kest.Test`
+
+#### Setup and Teardown
+
+- `.kest.BeforeAll`
+- `.kest.AfterAll`
+- `.kest.BeforeEach`
+- `.kest.AfterEach`
+
+#### Using Matchers
+
+- `.kest.ToThrow`
+- `.kest.Match`
+- `.kest.MatchTable`
+- `.kest.MatchDict`
 
 ### Command: krun
