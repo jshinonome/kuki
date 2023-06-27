@@ -200,6 +200,7 @@ import {"./path"};
 
 / -debug option
 .cli.Boolean[`debug;0b;"debug mode"];
+.cli.Boolean[`init;0b;"initialize kest.json"];
 .cli.Symbol[`testRoot;`:test;"directory that kest use to search for test files in"];
 .cli.Symbol[`testOutputFile;`;"write test results to a file"];
 .cli.String[`testPattern;"*";"run only tests with a name that matches the pattern"];

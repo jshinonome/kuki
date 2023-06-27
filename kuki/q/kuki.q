@@ -56,10 +56,4 @@ import {"./log"};
 import {"./cli"};
 import {"./path"};
 
-.cli.Selection[`kScriptType;`krun`kest;"kuki script type"];
-
-.cli.Parse[];
-
-import {"./",string .cli.args`kScriptType};
-
-.cli.AppendIgnores`kScriptType;
+import {"./",first .Q.opt[.z.x][`kScriptType]};

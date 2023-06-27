@@ -1,4 +1,3 @@
-from argparse import Namespace
 from typing import List
 
 CMD_OPTION_MAP = {
@@ -39,40 +38,37 @@ PROCESS_DEFAULT = {
 }
 
 
-def generate_options(args: Namespace) -> List[str]:
-    input_args = vars(args)
-    input_args.pop("init")
+def generate_options(args: List[str], process_cfg: dict[str, str]) -> List[str]:
+    system_args = list(filter(lambda arg: arg[0] == "-" and len(arg) == 2, args))
     cmd = []
-    for key, value in PROCESS_DEFAULT.items():
+    for key, value in process_cfg.items():
+        option = "-" + CMD_OPTION_MAP.get(key)
+        # skip command line specified process configuration
+        # command line options overwrite kest.json
+        if option in system_args:
+            continue
+
         if key == "port":
-            cmd.append("-p")
-            cmd.append(str(input_args[key]))
+            cmd.append(option)
+            cmd.append(str(value))
+
+        # skip non-exist configuration or default configuration
+        if key not in PROCESS_DEFAULT or value == PROCESS_DEFAULT[key]:
             continue
 
-        if key not in input_args or value == input_args[key]:
-            continue
-
-        cmd.append("-" + CMD_OPTION_MAP[key])
-        arg = input_args[key]
+        cmd.append(option)
         if key == "error_traps":
-            cmd.append(str(["none", "suspend", "dump"].index(arg)))
+            cmd.append(str(["none", "suspend", "dump"].index(value)))
         elif key == "console_size":
-            cmd.append(" ".join([str(c) for c in input_args[key]]))
+            cmd.append(" ".join([str(c) for c in value]))
         elif key == "garbage_collection":
-            cmd.append(str(["deferred", "immediate"].index(arg)))
+            cmd.append(str(["deferred", "immediate"].index(value)))
         elif key == "tls":
-            cmd.append(str(["plain", "mixed", "tls"].index(arg)))
-        elif key in ["quiet", "blocked"] and not arg:
-            cmd.remove("-" + CMD_OPTION_MAP[key])
+            cmd.append(str(["plain", "mixed", "tls"].index(value)))
+        elif key in ["quiet", "blocked"] and not value:
+            cmd.remove(option)
         elif key == "replicate":
-            cmd.append(arg)
+            cmd.append(value)
         else:
-            cmd.append(str(arg))
-    for key, value in input_args.items():
-        if key == "debug":
-            if value:
-                cmd.append("-debug")
-        elif key not in PROCESS_DEFAULT:
-            cmd.append("-" + key)
-            cmd.append("'{}'".format(input_args.get(key, "")))
+            cmd.append(str(value))
     return cmd
