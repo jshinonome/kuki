@@ -51,9 +51,14 @@ def generate_options(args: List[str], process_cfg: dict[str, str]) -> List[str]:
         if key == "port":
             cmd.append(option)
             cmd.append(str(value))
+            continue
 
         # skip non-exist configuration or default configuration
         if key not in PROCESS_DEFAULT or value == PROCESS_DEFAULT[key]:
+            continue
+
+        if key in ["quiet", "blocked"] and value:
+            cmd.append(option)
             continue
 
         cmd.append(option)
@@ -65,8 +70,6 @@ def generate_options(args: List[str], process_cfg: dict[str, str]) -> List[str]:
             cmd.append(str(["deferred", "immediate"].index(value)))
         elif key == "tls":
             cmd.append(str(["plain", "mixed", "tls"].index(value)))
-        elif key in ["quiet", "blocked"] and not value:
-            cmd.remove(option)
         elif key == "replicate":
             cmd.append(value)
         else:
