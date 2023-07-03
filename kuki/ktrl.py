@@ -19,14 +19,18 @@ ktrl_path = Path("ktrl.json")
 KTRL_DEFAULT = {
     "process": PROCESS_DEFAULT,
     "instance": {
-        "entry": "",
+        "module": "",
+        "version": "",
+        "file": "",
+        "dbPath": "",
+        "args": [],
     },
     "environment": {
         # source before running
-        "env_path": "",
-        "q_binary": "q",
-        "q_home": "",
-        "q_license_dir": "",
+        "envPath": "",
+        "qBinary": "q",
+        "qHome": "",
+        "qLicenseDir": "",
     },
 }
 
@@ -58,14 +62,14 @@ def generate_cmd(options: List[str], env_cfg: dict[str, str]) -> str:
     q_path = Path.joinpath(Path(__file__).parent, "q", "kuki.q").resolve()
     cmd = []
     if env_cfg:
-        if env_cfg.get("env_path"):
+        if env_cfg.get("envPath"):
             cmd.append("source " + env_cfg.get("env_path"))
-        if env_cfg.get("q_home"):
-            cmd.append("export QHOME='{}'".format(env_cfg.get("q_home")))
-        if env_cfg.get("q_license_dir"):
-            cmd.append("export QLIC='{}'".format(env_cfg.get("q_license_dir")))
-        if env_cfg.get("q_binary"):
-            cmd.append(" ".join([env_cfg.get("q_binary"), str(q_path), *options]))
+        if env_cfg.get("qHome"):
+            cmd.append("export QHOME='{}'".format(env_cfg.get("qHome")))
+        if env_cfg.get("qLicenseDir"):
+            cmd.append("export QLIC='{}'".format(env_cfg.get("qLicenseDir")))
+        if env_cfg.get("qBinary"):
+            cmd.append(" ".join([env_cfg.get("qBinary"), str(q_path), *options]))
     return ";".join(cmd)
 
 

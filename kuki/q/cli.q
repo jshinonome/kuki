@@ -22,6 +22,8 @@
   boolOptions: key[options] inter exec name from .cli.options where -1h=type each defaultValue;
   if[count boolOptions;args:@[args;boolOptions;:;1b]];
   args:(key[args] inter .cli.options`name)#args;
+  / allow mixed type values
+  args:((enlist `)!enlist (::)),args;
   if[any fails:not args[selectionNames]in'exec defaultValue from .cli.options where dataType=`selection;
     '"Invalid selection options - ",( "," sv string selectionNames where fails)
   ];
@@ -29,13 +31,15 @@
   if[count stringOptions;
     args:@[args;stringOptions;string];
   ];
+  args:` _ args;
   :args;
  };
 
-.cli.Parse:{[params]
-  args:.cli.parseArgs params;
-  if[`help in key args;.cli.printHelp[];exit 0];
-  if[`pHelp in key args;.cli.printProcessHelp[];exit 0];
+.cli.Parse:{[skipHelp]
+  args:.cli.parseArgs[];
+  skipHelp:$[null skipHelp;0b;skipHelp];
+  if[not[skipHelp] & `help in key args;.cli.printHelp[];exit 0];
+  if[not[skipHelp] &`pHelp in key args;.cli.printProcessHelp[];exit 0];
   :.cli.args:args;
  };
 

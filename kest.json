@@ -1,5 +1,9 @@
 {
   "process": {
+    "console_size": [
+      25,
+      80
+    ],
     "error_traps": "none",
     "garbage_collection": "deferred",
     "memory_limit": 0,
@@ -13,9 +17,9 @@
     "tls": "plain"
   },
   "environment": {
-    "env_path": "",
-    "q_binary": "rlwrap q",
-    "q_home": "",
-    "q_license_dir": ""
+    "envPath": "",
+    "qBinary": "q",
+    "qHome": "",
+    "qLicenseDir": ""
   }
 }
