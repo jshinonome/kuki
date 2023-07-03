@@ -9,7 +9,7 @@ setup(
     entry_points={
         "console_scripts": [
             "kuki=kuki.kuki:main",
-            "krun=kuki.krun:main",
+            "ktrl=kuki.ktrl:main",
             "kest=kuki.kest:main",
         ],
     },

@@ -68,20 +68,49 @@ K tEST CLI
 
 #### Define Test
 
-- `.kest.Test`
+- `.kest.Test[description;function]`
 
 #### Setup and Teardown
 
-- `.kest.BeforeAll`
-- `.kest.AfterAll`
-- `.kest.BeforeEach`
-- `.kest.AfterEach`
+- `.kest.BeforeAll function`
+- `.kest.AfterAll function`
+- `.kest.BeforeEach function`
+- `.kest.AfterEach function`
 
 #### Using Matchers
 
-- `.kest.ToThrow`
-- `.kest.Match`
-- `.kest.MatchTable`
-- `.kest.MatchDict`
+- `.kest.ToThrow[functionCall;errorMsg]`
+- `.kest.Match[expect;actual]`
+- `.kest.MatchTable[expect;actual]`
+- `.kest.MatchDict[expect;actual]`
 
-### Command: krun
+### Command: ktrl
+
+K conTRoL CLI
+
+#### Init ktrl Profile
+
+`ktrl -init [-global|mongodb] profile_name`
+
+locations for profiles
+
+- mongodb: stored in MongoDB
+- global: `$HOME/kuki/_profile`
+- local: `$PWD/profile`
+
+#### Start Process Using ktrl Profile
+
+`ktrl -profile [-global|mongodb] profile_name`
+
+- with `-mongodb`, ktrl will use profiles in MongoDB
+- with `-global`, ktrl will use profiles in global profile directory
+- without `-global|mongodb`, ktrl will use profiles as following priorities:
+  - local directory
+  - global profile directory
+  - MongoDB
+
+#### Config ktrl
+
+`ktrl -config`
+
+Config ktrl includes MongoDB connection details, configuration file path `$HOME/kuki/_config/ktrlrc.json`
