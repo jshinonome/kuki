@@ -113,4 +113,5 @@ def generate_cmd(options: List[str], env_cfg: dict[str, str]) -> str:
                 cmd.append(" ".join([env_cfg.get("binary"), str(k_path), *options]))
             else:
                 raise Exception("missing binary configuration")
+            raise Exception("k is not support yet")
     return ";".join(cmd)
