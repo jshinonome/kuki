@@ -3,9 +3,8 @@ import logging
 import subprocess
 import sys
 from pathlib import Path
-from typing import List
 
-from .util import PROCESS_DEFAULT, generate_options
+from .util import ENV_DEFAULT, PROCESS_DEFAULT, generate_cmd, generate_options
 
 FORMAT = "%(asctime)s %(levelname)s: %(message)s"
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
@@ -24,13 +23,7 @@ kest_process_default.pop("disable_system_cmd")
 
 KEST_DEFAULT = {
     "process": kest_process_default,
-    "environment": {
-        # source before running
-        "envPath": "",
-        "qBinary": "q",
-        "qHome": "",
-        "qLicenseDir": "",
-    },
+    "environment": ENV_DEFAULT,
 }
 
 
@@ -50,26 +43,11 @@ def kest(args):
         options = ["-kScriptType", "kest"] + args + options
 
         cmd = generate_cmd(options, kest_json.get("environment"))
-        logger.info(cmd)
+        logger.info("starting " + cmd)
         try:
             subprocess.run(cmd, shell=True, check=True)
         except subprocess.CalledProcessError:
             exit(1)
-
-
-def generate_cmd(options: List[str], env_cfg: dict[str, str]) -> str:
-    q_path = Path.joinpath(Path(__file__).parent, "q", "kuki.q").resolve()
-    cmd = []
-    if env_cfg:
-        if env_cfg.get("envPath"):
-            cmd.append("source " + env_cfg.get("env_path"))
-        if env_cfg.get("qHome"):
-            cmd.append("export QHOME='{}'".format(env_cfg.get("qHome")))
-        if env_cfg.get("qLicenseDir"):
-            cmd.append("export QLIC='{}'".format(env_cfg.get("qLicenseDir")))
-        if env_cfg.get("qBinary"):
-            cmd.append(" ".join([env_cfg.get("qBinary"), str(q_path), *options]))
-    return ";".join(cmd)
 
 
 def load_kest():

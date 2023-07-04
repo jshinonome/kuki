@@ -18,8 +18,9 @@
   },
   "environment": {
     "envPath": "",
-    "qBinary": "q",
-    "qHome": "",
-    "qLicenseDir": ""
+    "binary": "q",
+    "binaryType": "q",
+    "binaryHome": "",
+    "licenseDir": ""
   }
 }

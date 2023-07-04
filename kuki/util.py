@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import List
 
 CMD_OPTION_MAP = {
@@ -38,6 +39,17 @@ PROCESS_DEFAULT = {
 }
 
 
+ENV_DEFAULT = {
+    # source before running
+    "envPath": "",
+    "binary": "q",
+    # q or k
+    "binaryType": "q",
+    "binaryHome": "",
+    "licenseDir": "",
+}
+
+
 def generate_options(args: List[str], process_cfg: dict[str, str]) -> List[str]:
     system_args = list(filter(lambda arg: arg[0] == "-" and len(arg) == 2, args))
     cmd = []
@@ -75,3 +87,30 @@ def generate_options(args: List[str], process_cfg: dict[str, str]) -> List[str]:
         else:
             cmd.append(str(value))
     return cmd
+
+
+def generate_cmd(options: List[str], env_cfg: dict[str, str]) -> str:
+    q_path = Path.joinpath(Path(__file__).parent, "q", "kuki.q").resolve()
+    k_path = Path.joinpath(Path(__file__).parent, "k", "kuki.k").resolve()
+    cmd = []
+    if env_cfg:
+        binary_type = env_cfg.get("binaryType", "q")
+        if binary_type == "q":
+            if env_cfg.get("envPath"):
+                cmd.append("source " + env_cfg.get("envPath"))
+            if env_cfg.get("binaryHome"):
+                cmd.append("export QHOME='{}'".format(env_cfg.get("binaryHome")))
+            if env_cfg.get("licenseDir"):
+                cmd.append("export QLIC='{}'".format(env_cfg.get("licenseDir")))
+            if "binary" in env_cfg:
+                cmd.append(" ".join([env_cfg.get("binary"), str(q_path), *options]))
+            else:
+                raise Exception("missing binary configuration")
+        elif binary_type == "k":
+            if env_cfg.get("envPath"):
+                cmd.append("source " + env_cfg.get("envPath"))
+            if "binary" in env_cfg:
+                cmd.append(" ".join([env_cfg.get("binary"), str(k_path), *options]))
+            else:
+                raise Exception("missing binary configuration")
+    return ";".join(cmd)
