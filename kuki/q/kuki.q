@@ -25,8 +25,12 @@
   .kuki.importedModules,:realPath;
  };
 
+.kuki.path:{x,:$[x like "/src";"";"/src"]}getenv`PWD;
+
+.kuki.SetPath:{.kuki.path:x};
+
 .kuki.importLocal:{[path;module]
-  if[0=count path;path:getenv`PWD;path,:$[path like "/src";"";"/src"]];
+  if[0=count path;path:.kuki.path];
   modulePath: .kuki.joinPath[path;.kuki.appendDotQ module];
   .kuki.importModule modulePath
  };

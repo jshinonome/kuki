@@ -252,4 +252,5 @@ import {"./path"};
 .cli.Parse[];
 
 .kest.startupPath:.path.Cwd[];
+.kuki.SetPath[.path.ToString .cli.args`testRoot];
 .kest.run[hsym .cli.args`testRoot];
