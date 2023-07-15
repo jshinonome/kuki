@@ -18,7 +18,7 @@
   },
   "environment": {
     "envPath": "",
-    "binary": "q",
+    "binary": "rlwrap q",
     "binaryType": "q",
     "binaryHome": "",
     "licenseDir": ""
