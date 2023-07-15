@@ -16,7 +16,7 @@ from . import config_util, package_util
 
 logger = logging.getLogger()
 config = config_util.load_config()
-registry = config.get("registry", "http://0.0.0.0:4873/")
+registry = config.get("registry", "https://kuki.ninja/")
 token = config.get("token", "")
 
 global_cache_dir = Path.joinpath(config_util.global_kuki_root, "_cache")

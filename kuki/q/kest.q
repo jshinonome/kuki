@@ -27,24 +27,54 @@ import {"./path"};
  };
 
 .kest.ToThrow:{[functionCall;errorMsg]
-  .kest.Match[errorMsg;@[value;functionCall;{x}]]
+  .kest.match[errorMsg;@[value;functionCall;{x}];"Error Msg "]
+ };
+
+.kest.raise:{[msg] -2 .kest.getMsgByStyle[`red;msg];'msg};
+
+.kest.match:{[expect;actual;item]
+  if[expect~actual;
+    :1b;
+  ];
+  msg: "\n" sv (
+    "  ",item,"Mismatch";
+    "    Expected: ", -3!expect;
+    "    Received: ", -3!actual
+  );
+  .kest.raise msg;
  };
 
 .kest.Match:{[expect;actual]
-  if[not expect~actual;
-    msg: "\n" sv (
-      "  Mismatch";
-      "    Expected: ", -3!expect;
-      "    Received: ", -3!actual
-    );
-    -2 .kest.getMsgByStyle[`red;msg];
-    'msg;
-  ];
-  :1b;
+  .kest.match[expect;actual;""]
+ };
+
+
+.kest.getConsoleFormat:{.Q.S[system"c";0j;x]};
+
+.kest.matchTable:{[expectTable;actualTable;filter;item]
+  if[expectTable~actualTable;:1b];
+  missing:filter expectTable except actualTable;
+  extra:filter actualTable except expectTable;
+  msg: "\n" sv(
+    (enlist "  ",item,"Mismatch"),
+    ((2 8#" "),
+      {"    (",x,") "}'[(,/)(count each (missing;extra))#'"+-"]),'
+      .kest.getConsoleFormat[missing uj extra]
+  );
+  .kest.raise msg;
  };
 
 .kest.MatchTable:{[expectTable;actualTable]
-
+  if[not all isTables:.Q.qt each (expectTable;actualTable);
+    msg:"not a table - ",(-3!`expectTable`actualTable where not isTables);
+    .kest.raise msg;
+  ];
+  if[expectTable~actualTable;
+    :1b;
+  ];
+  .kest.match[cols expectTable;cols actualTable;"Column "];
+  .kest.matchTable[0!meta expectTable;0!meta actualTable;(::);"Meta "];
+  :.kest.matchTable[0!expectTable;0!actualTable;(5 sublist);"Record(show <=5 diff) "];
  };
 
 .kest.MatchDict:{[expectDict;actualDict]

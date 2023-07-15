@@ -33,7 +33,7 @@ group.add_argument(
     "-d",
     "--download",
     type=str,
-    help="download a kdb package of latest version, use '@' to specify a version",
+    help="download a q/k package of latest version, use '@' to specify a version",
 )
 
 
@@ -41,14 +41,14 @@ group.add_argument(
     "-i",
     "--install",
     nargs="*",
-    help="install a kdb package of latest version, use '@' to specify a version",
+    help="install a q/k package of latest version, use '@' to specify a version",
 )
 
 group.add_argument(
     "--init",
     action="store_true",
     default=False,
-    help="init a kdb package",
+    help="init a q/k package",
 )
 
 group.add_argument(
@@ -63,14 +63,14 @@ group.add_argument(
     "--publish",
     action="store_true",
     default=False,
-    help="publish a kdb package using kuki.json",
+    help="publish a q/k package using kuki.json",
 )
 
 group.add_argument(
     "-s",
     "--search",
     type=str,
-    help="search a kdb package",
+    help="search a q/k package",
 )
 
 
@@ -78,7 +78,7 @@ group.add_argument(
     "-u",
     "--uninstall",
     nargs="+",
-    help="uninstall a kdb package, use '@' to specify a version",
+    help="uninstall a q/k package, use '@' to specify a version",
 )
 
 group.add_argument(
@@ -108,7 +108,10 @@ def kuki(args):
         user = input("Username: ")
         password = input("Password: ")
         email = input("Email: ")
-        registry_util.add_user(user, password, email)
+        logger.info("About to register '{}' with '{}'".format(user, password))
+        proceed = input("Is this OK? (yes/no) ").strip()
+        if proceed.lower() == "yes":
+            registry_util.add_user(user, password, email)
     elif args.login:
         user = input("Username: ")
         password = input("Password: ")

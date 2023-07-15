@@ -93,7 +93,7 @@ def test_adduser(monkeypatch: pytest.MonkeyPatch):
         json={"token": "7IForS1HdYwD7wgFxXGMTA=="},
         status=201,
     )
-    inputs = iter(["test", "password", "test@test.com"])
+    inputs = iter(["test", "password", "test@test.com", "yes"])
     monkeypatch.setattr("builtins.input", lambda _: next(inputs))
     run_kuki("--adduser")
     assert config_util.load_config()["token"] == "7IForS1HdYwD7wgFxXGMTA=="
@@ -190,7 +190,7 @@ def test_search():
                     },
                     "readmeFilename": "README.md",
                     "homepage": "https://github.com/saitama/dummy#readme",
-                    "keywords": ["q", "kx", "kdb+"],
+                    "keywords": ["q", "k"],
                     "time": {"modified": "2023-04-23T11:36:41.844Z"},
                     "license": "Apache-2.0",
                     "versions": {"1.1.5": "latest"},
