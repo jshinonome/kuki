@@ -11,9 +11,8 @@
 
 .kuki.rootDir:{kukiRoot:getenv`KUKIPATH;$[count kukiRoot;kukiRoot;.kuki.joinPath[getenv`HOME;("kuki")]]}[];
 
-
-.kuki.getRealPath:{[modulePath]
-  first @[system;"realpath ", modulePath;{'y, " - No such file or directory"}[;modulePath]]
+.kuki.getRealPath:{[path]
+  first @[system;"realpath ", path;{'y, " - No such file or directory"}[;path]]
  };
 
 .kuki.appendDotQ:{ x,$[x like "*.q";"";".q"] };

@@ -11,6 +11,7 @@ readme_file = "README.md"
 
 package_path = Path.cwd()
 readme_path = Path(readme_file)
+src_path = Path("src")
 package_config_path = Path(config_file)
 package_include_path = Path(".kukiinclude")
 package_index_path = Path(index_file)
@@ -45,6 +46,7 @@ def generate_json(name: str, description="", author="", git=""):
     if not proceed or proceed.lower() == "yes":
         dump_kuki(kuki)
         readme_path.touch()
+        src_path.mkdir(parents=True, exist_ok=True)
 
 
 def init():
@@ -96,7 +98,7 @@ def load_kuki() -> Kuki:
 
 
 def load_include() -> List[str]:
-    includes = set(["src/*", "lib/*", config_file, readme_file])
+    includes = set(["src/*", "cfg/*", config_file, readme_file])
     if package_include_path.exists():
         with open(package_include_path, "r") as file:
             while line := file.readline():

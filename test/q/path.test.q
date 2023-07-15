@@ -21,3 +21,11 @@
 .kest.Test["glob directory";{
   .kest.Match[2;count .path.Glob[`:test/data;"*csv*"]]
  }];
+
+.kest.Test["join path";{
+  .kest.Match[.path.JoinPath[.path.Cwd[];"test"];.path.ToHsym .path.GetRealPath"test"]
+ }];
+
+.kest.Test["get relative path";{
+  .kest.Match[.path.JoinPath[.path.Cwd[];"test/q/test"];.path.GetRelativePath{"test"}]
+ }];

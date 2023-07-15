@@ -36,3 +36,26 @@
 .path.Home:{hsym `$getenv`HOME};
 
 .path.Cwd:{hsym `$first system"pwd"};
+
+.path.appendSlash:{[path]
+  .kuki.appendSlash path
+ };
+
+// same as .kuki.getRealPath
+.path.GetRealPath:{[path]
+  .kuki.getRealPath .path.ToString path
+ };
+
+// same as .kuki.joinPath
+.path.JoinPath:{[path;subPaths]
+  path:.path.ToString path;
+  subPaths:$[type[subPaths] in 0 10h;subPaths;.path.ToString each subPaths];
+  .path.ToHsym .kuki.joinPath[.path.ToString path;subPaths]
+ };
+
+.path.GetRelativePath:{[pathFunc]
+  targetPath: pathFunc[];
+  path: first -3#value pathFunc;
+  path: 1_string first ` vs hsym `$path;
+  .path.JoinPath[path;targetPath]
+ };
