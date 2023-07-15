@@ -65,8 +65,8 @@ import {"./path"};
  };
 
 .kest.MatchTable:{[expectTable;actualTable]
-  if[not all isTables:.Q.qt each (expectTable;actualTable);
-    msg:"not a table - ",(-3!`expectTable`actualTable where not isTables);
+  if[not all isTable:.Q.qt each (expectTable;actualTable);
+    msg:"not a table - ",(-3!`expectTable`actualTable where not isTable);
     .kest.raise msg;
   ];
   if[expectTable~actualTable;
@@ -78,7 +78,20 @@ import {"./path"};
  };
 
 .kest.MatchDict:{[expectDict;actualDict]
-
+  if[not all isDict:99h=type each(expectDict;actualDict);
+    msg:"not a dict - ",(-3!`expectDict`actualDict where not isDict);
+    .kest.raise msg;
+  ];
+  if[expectDict~actualDict;
+    :1b;
+  ];
+  .kest.match[key expectDict;key actualDict;"Key "];
+  .kest.matchTable[
+    ([]k:key expectDict;v:value expectDict);
+    ([]k:key actualDict;v:value actualDict);
+    (::);
+    "Dict "
+  ];
  };
 
 / output format
