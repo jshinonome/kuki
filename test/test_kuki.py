@@ -31,7 +31,7 @@ def tmp_dir(tmp_path_factory: pytest.TempPathFactory, monkeypatch: pytest.Monkey
         config_util.global_config_dir, config_util.config_file
     )
 
-    global_cache_path = Path.joinpath(global_kuki_root, ".cache")
+    global_cache_path = Path.joinpath(global_kuki_root, "_cache")
     global_cache_path.mkdir(parents=True, exist_ok=True)
     registry_util.global_cache_dir = global_cache_path
 
@@ -407,6 +407,46 @@ def test_install(
     assert len(dependencies) == len(expected_deps)
     for dep in expected_deps:
         assert dep in dependencies
+
+
+@pytest.mark.parametrize(
+    "command_params, expected_index",
+    [
+        ("--global --install log", ["log@0.1.1"]),
+        ("--global --install file", ["file@1.0.1", "log@0.1.1"]),
+        (
+            "--global --install csv",
+            ["csv@0.0.2", "file@1.0.0", "log@0.1.0"],
+        ),
+        (
+            "--global --install csv@0.0.1",
+            ["csv@0.0.1", "file@1.0.0", "log@0.1.0"],
+        ),
+        (
+            "--global --install file log",
+            ["file@1.0.1", "log@0.1.1"],
+        ),
+        (
+            "--global --install file log@0.1.0",
+            ["file@1.0.1", "log@0.1.1", "log@0.1.0"],
+        ),
+    ],
+)
+@responses.activate
+def test_install_in_global_mode(
+    mock_package_api,
+    command_params,
+    expected_index: List[str],
+):
+    run_kuki(command_params)
+    global_index = registry_util.load_global_index()
+    assert len(global_index) == len(expected_index)
+
+    for pkg_id in expected_index:
+        assert pkg_id in global_index
+        name, version = pkg_id.split("@")
+        pkg_dir = Path.joinpath(config_util.global_kuki_root, name, version)
+        assert Path.joinpath(pkg_dir, package_util.config_file).exists()
 
 
 @pytest.mark.parametrize(

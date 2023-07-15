@@ -279,7 +279,7 @@ def install_entry(pkgs: List[str]):
         logger.error("failed to install packages with error: {}".format(e))
 
 
-def install_packages(pkgs: List[str], skip_updating_pkg_index=True):
+def install_packages(pkgs: List[str], skip_updating_pkg_index=True, globalMode=False):
     for pkg in pkgs:
         if skip_updating_pkg_index:
             logger.info("install dependency package '{}'".format(pkg))
@@ -287,38 +287,42 @@ def install_packages(pkgs: List[str], skip_updating_pkg_index=True):
             logger.info("install package '{}'".format(pkg))
         metadata = get_metadata(pkg)
         name = metadata["name"]
-        if name == kuki_json["name"]:
+        if not globalMode and name == kuki_json["name"]:
             logger.warning("shouldn't install itself, skip...")
             return
+
         version = metadata["version"]
         pkg_id = get_pkg_id(metadata)
 
-        if not skip_updating_pkg_index:
+        if not skip_updating_pkg_index and not globalMode:
             kuki_json["dependencies"][name] = version
 
-        if name in package_index and version != package_index[name]["version"]:
-            logger.info("current '{}@{}' exists".format(name, package_index[name]["version"]))
-            if name in kuki_json["dependencies"]:
-                version = kuki_json["dependencies"][name]
-                logger.warning(
-                    "{} is a dependency package, force to use version {}".format(name, version)
-                )
-            elif newer_than(version, package_index[name]["version"]):
-                logger.warning("use newer '{}@{}'".format(name, version))
-            else:
-                logger.warning("skip outdated '{}@{}'".format(name, version))
-                continue
+        if not globalMode:
+            if name in package_index and version != package_index[name]["version"]:
+                logger.info("current '{}@{}' exists".format(name, package_index[name]["version"]))
+                if name in kuki_json["dependencies"]:
+                    version = kuki_json["dependencies"][name]
+                    logger.warning(
+                        "{} is a dependency package, force to use version {}".format(name, version)
+                    )
+                elif newer_than(version, package_index[name]["version"]):
+                    logger.warning("use newer '{}@{}'".format(name, version))
+                else:
+                    logger.warning("skip outdated '{}@{}'".format(name, version))
+                    continue
 
-        package_index[name] = metadata
+            package_index[name] = metadata
 
         if pkg_id in global_index and name in package_index:
             logger.warning("{} is already installed, skip...".format(pkg_id))
             continue
         if pkg_id not in global_index:
-            install_package(metadata)
             # global index uses package id as keys, package index uses package name as keys
             global_index[pkg_id] = metadata
-            install_packages([k + "@" + v for k, v in metadata["dependencies"].items()])
+            install_packages(
+                [k + "@" + v for k, v in metadata["dependencies"].items()], True, globalMode
+            )
+            install_package(metadata)
 
 
 def install_package(metadata: Metadata):

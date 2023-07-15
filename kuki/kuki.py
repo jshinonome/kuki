@@ -89,7 +89,17 @@ group.add_argument(
 )
 
 
-def kuki(args):
+parser.add_argument(
+    "-g",
+    "--global",
+    action="store_true",
+    default=False,
+    dest="globalMode",
+    help="enable global mode",
+)
+
+
+def kuki(args: argparse.Namespace):
     if args.config:
         for arg in args.config:
             if "=" in arg:
@@ -121,7 +131,11 @@ def kuki(args):
     elif args.download:
         registry_util.download_entry(args.download)
     else:
-        if not package_util.exits():
+        if args.globalMode:
+            if isinstance(args.install, list):
+                registry_util.install_packages(args.install, False, True)
+                registry_util.dump_global_index()
+        elif not package_util.exits():
             logger.error("kuki.json not found, use 'kuki --init' to init the package first")
             return
         elif args.version:
