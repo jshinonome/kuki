@@ -39,7 +39,7 @@ PROCESS_DEFAULT = {
 }
 
 
-ENV_DEFAULT = {
+PROFILE_DEFAULT = {
     # source before running
     "envPath": "",
     "binary": "q",
@@ -50,10 +50,12 @@ ENV_DEFAULT = {
 }
 
 
-def generate_options(args: List[str], process_cfg: dict[str, str]) -> List[str]:
+def generate_process_options(args: List[str], process_cfg: dict[str, str]) -> List[str]:
     system_args = list(filter(lambda arg: arg[0] == "-" and len(arg) == 2, args))
     cmd = []
     for key, value in process_cfg.items():
+        if key not in CMD_OPTION_MAP:
+            continue
         option = "-" + CMD_OPTION_MAP.get(key)
         # skip command line specified process configuration
         # command line options overwrite kest.json
@@ -102,15 +104,15 @@ def generate_cmd(options: List[str], env_cfg: dict[str, str]) -> str:
                 cmd.append("export QHOME='{}'".format(env_cfg.get("binaryHome")))
             if env_cfg.get("licenseDir"):
                 cmd.append("export QLIC='{}'".format(env_cfg.get("licenseDir")))
-            if "binary" in env_cfg:
-                cmd.append(" ".join([env_cfg.get("binary"), str(q_path), *options]))
+            if env_cfg.get("binary"):
+                cmd.append(" ".join([env_cfg.get("binary", "q"), str(q_path), *options]))
             else:
                 raise Exception("missing binary configuration")
         elif binary_type == "k":
             if env_cfg.get("envPath"):
                 cmd.append("source " + env_cfg.get("envPath"))
-            if "binary" in env_cfg:
-                cmd.append(" ".join([env_cfg.get("binary"), str(k_path), *options]))
+            if env_cfg.get("binary"):
+                cmd.append(" ".join([env_cfg.get("binary", "k"), str(k_path), *options]))
             else:
                 raise Exception("missing binary configuration")
             raise Exception("k is not support yet")

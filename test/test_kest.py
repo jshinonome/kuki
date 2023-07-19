@@ -1,6 +1,6 @@
 import logging
 
-from kuki.util import generate_options
+from kuki.util import generate_process_options
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +54,7 @@ def test_load_kest_json():
         "1",
         "-b",
     ]
-    assert generate_options([], kest_json) == expect_args
+    assert generate_process_options([], kest_json) == expect_args
 
 
 def test_skip_args():
@@ -71,4 +71,4 @@ def test_skip_args():
         "-g",
         "1",
     ]
-    assert generate_options(args, kest_json) == expect_args
+    assert generate_process_options(args, kest_json) == expect_args

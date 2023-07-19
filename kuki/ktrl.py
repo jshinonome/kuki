@@ -1,10 +1,8 @@
-import json
+import argparse
 import logging
-import subprocess
-import sys
-from pathlib import Path
 
-from .util import ENV_DEFAULT, PROCESS_DEFAULT, generate_cmd, generate_options
+from . import ktrl_util
+from .package_util import package_config_path
 
 FORMAT = "%(asctime)s %(levelname)s: %(message)s"
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
@@ -13,50 +11,77 @@ logging.basicConfig(level=logging.INFO, format=FORMAT, datefmt=DATE_FORMAT)
 
 logger = logging.getLogger()
 
-ktrl_path = Path("ktrl.json")
+parser = argparse.ArgumentParser(description="K conTRoL CLI")
 
-KTRL_DEFAULT = {
-    "process": PROCESS_DEFAULT,
-    "instance": {
-        "module": "",
-        "version": "",
-        "file": "",
-        "dbPath": "",
-        "args": [],
-    },
-    "environment": ENV_DEFAULT,
-}
+parser.add_argument(
+    "-g",
+    "--global",
+    action="store_true",
+    default=False,
+    dest="globalMode",
+    help="enable global mode",
+)
+
+parser.add_argument(
+    "--profile",
+    type=str,
+    help="profile name",
+)
+
+parser.add_argument(
+    "--process",
+    type=str,
+    help="process name",
+)
+
+group = parser.add_mutually_exclusive_group()
+
+group.add_argument(
+    "-l",
+    "--list",
+    choices=["profile", "process"],
+    help="list all profiles or all processes",
+)
+
+group.add_argument(
+    "-c",
+    "--config",
+    action="store_true",
+    default=False,
+    help="config profile or process",
+)
+
+group.add_argument(
+    "-s",
+    "--start",
+    action="store_true",
+    default=False,
+    help="start a specified process with a specified profile",
+)
 
 
-def ktrl(args):
-    # use ktrl.json if available
-    if "-init" in args:
-        # generate ktrl.json
-        if ktrl_path.exists():
-            logger.warn("ktrl.json already exists, skip...")
-            return
-        with open(ktrl_path, "w") as file:
-            json.dump(KTRL_DEFAULT, file, indent=2)
-    else:
-        ktrl_json = load_ktrl()
-        options = generate_options(args, ktrl_json.get("process"))
-        # generate run command
-        options = ["-kScriptType", "ktrl"] + args + options
+def ktrl(args: argparse.Namespace):
+    if not args.globalMode and not package_config_path.exists():
+        logger.error("'ktrl' in local mode must be executed from the project root")
+        return
+    if args.config:
+        if args.profile:
+            ktrl_util.config_file(args.profile, "profile", args.globalMode)
+        elif args.process:
+            ktrl_util.config_file(args.process, "process", args.globalMode)
+        else:
+            logger.error("requires --profile or --process name")
 
-        cmd = generate_cmd(options, ktrl_json.get("environment"))
-        logger.info("starting " + cmd)
-        try:
-            subprocess.run(cmd, shell=True, check=True)
-        except subprocess.CalledProcessError:
-            exit(1)
+    elif args.list:
+        ktrl_util.list_config(args.list, args.globalMode)
 
-
-def load_ktrl():
-    if ktrl_path.exists():
-        return json.loads(ktrl_path.read_text())
-    else:
-        return KTRL_DEFAULT
+    elif args.start:
+        if args.profile and args.process:
+            ktrl_util.start(args.profile, args.process, args.globalMode)
+        else:
+            logger.error("requires --profile name and --process name")
 
 
 def main():
-    ktrl(sys.argv[1:])
+    args = parser.parse_args()
+    ktrl(args)

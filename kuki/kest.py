@@ -4,7 +4,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from .util import ENV_DEFAULT, PROCESS_DEFAULT, generate_cmd, generate_options
+from .util import PROCESS_DEFAULT, PROFILE_DEFAULT, generate_cmd, generate_process_options
 
 FORMAT = "%(asctime)s %(levelname)s: %(message)s"
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
@@ -23,7 +23,7 @@ kest_process_default.pop("disable_system_cmd")
 
 KEST_DEFAULT = {
     "process": kest_process_default,
-    "environment": ENV_DEFAULT,
+    "profile": PROFILE_DEFAULT,
 }
 
 
@@ -38,11 +38,11 @@ def kest(args):
             json.dump(KEST_DEFAULT, file, indent=2)
     else:
         kest_json = load_kest()
-        options = generate_options(args, kest_json.get("process"))
+        options = generate_process_options(args, kest_json.get("process"))
         # generate run command
         options = ["-kScriptType", "kest"] + args + options
 
-        cmd = generate_cmd(options, kest_json.get("environment"))
+        cmd = generate_cmd(options, kest_json.get("profile"))
         logger.info("starting " + cmd)
         try:
             subprocess.run(cmd, shell=True, check=True)
