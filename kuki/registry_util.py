@@ -10,9 +10,12 @@ from pathlib import Path
 from typing import Dict, List, TypedDict
 
 import requests
+import urllib3
 from requests.auth import HTTPBasicAuth
 
 from . import config_util, package_util
+
+urllib3.disable_warnings()
 
 logger = logging.getLogger()
 config = config_util.load_config()
@@ -56,7 +59,7 @@ global_index = load_global_index()
 def add_user(user: str, password: str, email: str):
     payload = {"name": user, "password": password, "email": email}
     headers = {"Accept": "application/json", "Content-Type": "application/json"}
-    res = requests.put(user_url + user, json.dumps(payload), headers=headers)
+    res = requests.put(user_url + user, json.dumps(payload), headers=headers, verify=False)
 
     if res.status_code == 201:
         logger.info("the user '{}' has been added".format(user))
@@ -71,7 +74,9 @@ def login(user: str, password: str):
     basic_auth = HTTPBasicAuth(user, password)
     payload = {"name": user, "password": password}
     headers = {"Accept": "application/json", "Content-Type": "application/json"}
-    res = requests.put(user_url + user, json.dumps(payload), headers=headers, auth=basic_auth)
+    res = requests.put(
+        user_url + user, json.dumps(payload), headers=headers, auth=basic_auth, verify=False
+    )
     if res.status_code == 201:
         logger.info("you are authenticated as '{}'".format(user))
         token = res.json()["token"]
@@ -82,7 +87,7 @@ def login(user: str, password: str):
 
 
 def search_package(package: str):
-    res = requests.get(search_url.format(package))
+    res = requests.get(search_url.format(package), verify=False)
     logger.info(
         "{:20.20} | {:20.20} | {:20.20} | {:10.10} | {:10.10} | {:10.10}".format(
             "NAME", "DESCRIPTION", "AUTHOR", "DATE", "VERSION", "KEYWORDS"
@@ -110,15 +115,11 @@ def publish_entry():
         logger.error(e)
 
 
-def publish_package():
-    kuki = package_util.load_kuki()
-    pkg_name = kuki.get("name")
-    version = kuki.get("version")
+def pack_package(pkg_name: str, version: str):
     logger.info("📦  {}@{}".format(pkg_name, version))
 
     includes = package_util.load_include()
     tar_name = get_tar_name(pkg_name, version)
-    tar = tarfile.open(tar_name, "w:gz")
 
     files = set([])
     for pattern in includes:
@@ -127,13 +128,13 @@ def publish_package():
 
     logger.info("=== Tarball Contents === ")
 
+    tar = tarfile.open(tar_name, "w:gz")
     tar_unpacked_size = 0
     for file in files:
         size = os.path.getsize(file)
         logger.info("{:10d} | {:30.30}".format(size, os.path.basename(file)))
         tar_unpacked_size += size
         tar.add(file)
-
     tar.close()
 
     tar_packed_size = os.path.getsize(tar_name)
@@ -142,6 +143,28 @@ def publish_package():
     logger.info("package size:  {}".format(tar_packed_size))
     logger.info("unpacked size: {}".format(tar_unpacked_size))
     logger.info("total files:   {}".format(len(files)))
+
+    return tar_name, tar_packed_size
+
+
+def pack_entry():
+    try:
+        kuki = package_util.load_kuki()
+        pkg_name = kuki.get("name")
+        version = kuki.get("version")
+        pack_package(pkg_name, version)
+    except Exception as e:
+        logger.error("failed to pack")
+        logger.error(e)
+
+
+def publish_package():
+    kuki = package_util.load_kuki()
+    pkg_name = kuki.get("name")
+    version = kuki.get("version")
+
+    tar_name, tar_packed_size = pack_package(pkg_name, version)
+
     logger.info("publishing to {} with tag latest and default access".format(registry))
 
     headers = {
@@ -190,7 +213,7 @@ def publish_package():
             },
         },
     }
-    res = requests.put(registry + pkg_name, data=json.dumps(data), headers=headers)
+    res = requests.put(registry + pkg_name, data=json.dumps(data), headers=headers, verify=False)
     if res.status_code != 201:
         raise Exception(
             "failed to publish package '{}' with error: {}".format(pkg_name, res.json()["error"])
@@ -215,14 +238,16 @@ def get_metadata(name: str) -> Metadata:
         "Authorization": "Bearer {}".format(token),
     }
     if not version:
-        res = requests.get(registry + name, headers=headers)
+        res = requests.get(registry + name, headers=headers, verify=False)
         res_json = res.json()
         if res.status_code != 200:
             raise Exception(res_json.get("error"))
         version: str = res_json["dist-tags"]["latest"]
         metadata = res_json["versions"][version]
     else:
-        res = requests.get("{}{}/{}".format(registry, pkg_name, version), headers=headers)
+        res = requests.get(
+            "{}{}/{}".format(registry, pkg_name, version), headers=headers, verify=False
+        )
         metadata = res.json()
         if res.status_code != 200:
             raise Exception(metadata.get("error"))
@@ -259,7 +284,7 @@ def download_package(metadata: Metadata) -> str:
         headers = {
             "Authorization": "Bearer {}".format(token),
         }
-        res = requests.get(tar_url, headers=headers)
+        res = requests.get(tar_url, headers=headers, verify=False)
         if len(res.content) > 0:
             with open(cached_filepath, "wb") as file:
                 file.write(res.content)

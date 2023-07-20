@@ -1,4 +1,5 @@
 import argparse
+import getpass
 import logging
 
 from . import config_util, package_util, registry_util
@@ -67,6 +68,13 @@ group.add_argument(
 )
 
 group.add_argument(
+    "--pack",
+    action="store_true",
+    default=False,
+    help="pack a q/k package using kuki.json",
+)
+
+group.add_argument(
     "-s",
     "--search",
     type=str,
@@ -116,12 +124,18 @@ def kuki(args: argparse.Namespace):
         package_util.init()
     elif args.adduser:
         user = input("Username: ")
-        password = input("Password: ")
+        password = getpass.getpass("Password: ")
+        confirmed_pass = getpass.getpass("Confirm password: ")
+        if confirmed_pass != password:
+            logger.info("Password doesn't match, Try again")
+            return
         email = input("Email: ")
         logger.info("About to register '{}' with '{}'".format(user, password))
         proceed = input("Is this OK? (yes/no) ").strip()
         if proceed.lower() == "yes":
             registry_util.add_user(user, password, email)
+        else:
+            logger.info("Abort registering '{}'".format(user))
     elif args.login:
         user = input("Username: ")
         password = input("Password: ")
@@ -142,6 +156,8 @@ def kuki(args: argparse.Namespace):
             package_util.roll_up_version(args.version)
         elif args.publish:
             registry_util.publish_entry()
+        elif args.pack:
+            registry_util.pack_entry()
         elif isinstance(args.install, list):
             registry_util.install_entry(args.install)
         elif args.uninstall:

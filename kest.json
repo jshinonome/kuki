@@ -16,9 +16,9 @@
     "timer_period": 0,
     "tls": "plain"
   },
-  "environment": {
+  "profile": {
     "envPath": "",
-    "binary": "rlwrap q",
+    "binary": "q",
     "binaryType": "q",
     "binaryHome": "",
     "licenseDir": ""
