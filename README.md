@@ -1,5 +1,7 @@
 ## K Ultimate pacKage Installer
 
+Refer to [wiki](https://github.com/jshinonome/kuki/wiki) for documentations.
+
 ### Commands
 
 `kuki` includes a set of 3 commands
@@ -11,5 +13,3 @@
 ### Registry Site
 
 `kuki` can publish and install packages from central registry site [kuki.ninja](https://kuki.ninja/), thanks to [verdaccio](https://verdaccio.org/)
-
-Refer to [wiki](https://github.com/jshinonome/kuki/wiki) for documentations.
