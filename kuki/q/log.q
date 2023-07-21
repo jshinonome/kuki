@@ -37,14 +37,14 @@
  };
 
 .log.SetStdLogFile:{[filepath]
-  h:hopen filepath;
+  h:hopen hsym filepath;
   .log.stdHandle:h;
   .log.errHandle:h;
   .log.refreshLogMethod[];
  };
 
 .log.SetErrLogFile:{[filepath]
-  h:hopen filepath;
+  h:hopen hsym filepath;
   .log.errHandle:h;
   .log.refreshLogMethod[];
  };
