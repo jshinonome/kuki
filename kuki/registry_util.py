@@ -43,6 +43,7 @@ class Metadata(TypedDict):
     version: str
     dist: any
     dependencies: any
+    type: str
 
 
 def load_global_index() -> Dict[str, package_util.Kuki]:
@@ -305,12 +306,25 @@ def install_entry(pkgs: List[str]):
 
 
 def install_packages(pkgs: List[str], skip_updating_pkg_index=True, globalMode=False):
+    package_type = kuki_json.get("type", "q")
+
+    if package_type == "k":
+        allow_package_types = ["k"]
+    elif package_type == "k9":
+        allow_package_types = ["k9"]
+    else:
+        allow_package_types = ["q", "k"]
+
     for pkg in pkgs:
         if skip_updating_pkg_index:
             logger.info("install dependency package '{}'".format(pkg))
         else:
             logger.info("install package '{}'".format(pkg))
         metadata = get_metadata(pkg)
+
+        if not metadata.get("type") in allow_package_types and not globalMode:
+            logger.error("")
+
         name = metadata["name"]
         if not globalMode and name == kuki_json["name"]:
             logger.warning("shouldn't install itself, skip...")

@@ -15,7 +15,7 @@
   first @[system;"realpath ", path;{'y, " - No such file or directory"}[;path]]
  };
 
-.kuki.appendDotQ:{ x,$[x like "*.q";"";".q"] };
+.kuki.appendDotQ:{ x,$[any x like/: ("*.q";"*.k");"";".q"] };
 
 .kuki.importModule:{[modulePath]
   realPath: .kuki.getRealPath modulePath;

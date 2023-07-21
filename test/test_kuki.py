@@ -93,8 +93,10 @@ def test_adduser(monkeypatch: pytest.MonkeyPatch):
         json={"token": "7IForS1HdYwD7wgFxXGMTA=="},
         status=201,
     )
-    inputs = iter(["test", "password", "test@test.com", "yes"])
+    inputs = iter(["test", "test@test.com", "yes"])
+    password_inputs = iter(["password", "password"])
     monkeypatch.setattr("builtins.input", lambda _: next(inputs))
+    monkeypatch.setattr("getpass.getpass", lambda _: next(password_inputs))
     run_kuki("--adduser")
     assert config_util.load_config()["token"] == "7IForS1HdYwD7wgFxXGMTA=="
 
@@ -121,6 +123,7 @@ def test_init(monkeypatch: pytest.MonkeyPatch):
             "a dummy package",
             "Saitama",
             "https://github.com/saitama/dummy",
+            "q",
             "yes",
         ]
     )
@@ -163,13 +166,10 @@ def test_login(monkeypatch: pytest.MonkeyPatch):
         json={"token": "7IForS1HdYwD7wgFxXGMTA=="},
         status=201,
     )
-    inputs = iter(
-        [
-            "test",
-            "password",
-        ]
-    )
+    inputs = iter(["test"])
+    password_inputs = iter(["password"])
     monkeypatch.setattr("builtins.input", lambda _: next(inputs))
+    monkeypatch.setattr("getpass.getpass", lambda _: next(password_inputs))
     run_kuki("--login")
     assert config_util.load_config()["token"] == "7IForS1HdYwD7wgFxXGMTA=="
 

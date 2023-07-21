@@ -26,7 +26,7 @@ class Kuki(TypedDict):
     dependencies: Dict[str, str]
 
 
-def generate_json(name: str, description="", author="", git=""):
+def generate_json(name: str, description="", author="", git="", package_type="q"):
     if package_config_path.exists():
         overwrite = input("kuki.json already exists, overwrite: (yes/No) ").strip()
         if not overwrite or not overwrite.lower() in ["yes"]:
@@ -37,6 +37,7 @@ def generate_json(name: str, description="", author="", git=""):
         "description": description,
         "author": author,
         "git": git,
+        "type": package_type,
         "dependencies": {},
     }
     kuki_json = json.dumps(kuki, indent=2)
@@ -46,6 +47,7 @@ def generate_json(name: str, description="", author="", git=""):
     if not proceed or proceed.lower() == "yes":
         dump_kuki(kuki)
         readme_path.touch()
+        readme_path.write_text("# {name}\n\n- author: {author}\n- git: {git}\n".format(**kuki))
         src_path.mkdir(parents=True, exist_ok=True)
 
 
@@ -57,8 +59,14 @@ def init():
     description = input("description: ").strip()
     author = input("author: ").strip()
     git = input("git repository: ").strip()
+    package_type = input("package type: (q)").strip()
+    if not package_type:
+        package_type = "q"
+    if package_type not in ["q", "k", "k9"]:
+        logger.error("only support q, k, or k9 package type")
+        return
 
-    generate_json(package, description, author, git)
+    generate_json(package, description, author, git, package_type)
 
 
 def dump_kuki(kuki: Kuki):

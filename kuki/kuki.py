@@ -138,7 +138,7 @@ def kuki(args: argparse.Namespace):
             logger.info("Abort registering '{}'".format(user))
     elif args.login:
         user = input("Username: ")
-        password = input("Password: ")
+        password = getpass.getpass("Password: ")
         registry_util.login(user, password)
     elif args.search:
         registry_util.search_package(args.search)
