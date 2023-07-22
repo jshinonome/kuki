@@ -21,6 +21,7 @@ logger = logging.getLogger()
 config = config_util.load_config()
 registry = config.get("registry", "https://kuki.ninja/")
 token = config.get("token", "")
+user = config.get("user", "")
 
 global_cache_dir = Path.joinpath(config_util.global_kuki_root, "_cache")
 global_index_path = Path.joinpath(config_util.global_kuki_root, ".index")
@@ -66,6 +67,7 @@ def add_user(user: str, password: str, email: str):
         logger.info("the user '{}' has been added".format(user))
         token = res.json()["token"]
         config_util.update_config("token", token)
+        config_util.update_config("user", user)
     else:
         logger.error("failed to add user: " + user)
         logger.error("status code: {}, error: {}".format(res.status_code, res.json()["error"]))
@@ -82,6 +84,7 @@ def login(user: str, password: str):
         logger.info("you are authenticated as '{}'".format(user))
         token = res.json()["token"]
         config_util.update_config("token", token)
+        config_util.update_config("user", user)
     else:
         logger.error("failed to authenticated as '{}'".format(user))
         logger.error("status code: {}, error: {}".format(res.status_code, res.json()["error"]))
@@ -108,8 +111,26 @@ def search_package(package: str):
         )
 
 
+def get_publisher(pkg_name: str) -> str:
+    headers = {
+        "Authorization": "Bearer {}".format(token),
+    }
+    res = requests.get(registry + pkg_name, headers=headers, verify=False)
+    if res.status_code == 404:
+        return ""
+    else:
+        pkg = res.json()
+        latest_version = pkg["dist-tags"]["latest"]
+        return pkg["versions"][latest_version]["publisher"]
+
+
 def publish_entry():
     try:
+        if not user:
+            logger.error(
+                "run 'kuki --adduser' or 'kuki --login' first and then publish the package"
+            )
+            return
         publish_package()
     except Exception as e:
         logger.error("failed to publish")
@@ -199,6 +220,7 @@ def publish_package():
                 "name": pkg_name,
                 "description": kuki.get("package", ""),
                 "author": {"name": kuki.get("author", "unknown")},
+                "publisher": user,
                 "version": version,
                 "readme": package_util.load_readme(),
                 "dependencies": kuki.get("dependencies", {}),
@@ -234,6 +256,11 @@ def unpublish_package(pkg_id: str):
     pkg: dict = res.json()
     if res.status_code != 200:
         raise Exception(pkg.get("error"))
+    dist_tags: Dict[str, str] = pkg["dist-tags"]
+    latest_version = dist_tags["latest"]
+    publisher = pkg["versions"][latest_version]["publisher"]
+    if user != publisher:
+        logger.error("not allowed to unpublish other publisher's package")
     all_version = pkg.get("versions", {})
     only_version = len(all_version) == 1
     no_version = len(all_version) == 0
@@ -261,8 +288,7 @@ def unpublish_package(pkg_id: str):
             return
         dist = all_version[version]["dist"]
         all_version.pop(version)
-        dist_tags: Dict[str, str] = pkg["dist-tags"]
-        latest_version = dist_tags["latest"]
+
         for tag in list(dist_tags.keys()):
             if dist_tags[tag] == version:
                 dist_tags.pop(tag)
