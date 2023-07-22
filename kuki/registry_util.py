@@ -223,6 +223,87 @@ def publish_package():
         )
 
 
+def unpublish_package(pkg_id: str):
+    pkg_name, version = (pkg_id if "@" in pkg_id else pkg_id + "@").split("@")
+
+    headers = {
+        "Authorization": "Bearer {}".format(token),
+    }
+
+    res = requests.get(registry + pkg_name, headers=headers, verify=False)
+    pkg: dict = res.json()
+    if res.status_code != 200:
+        raise Exception(pkg.get("error"))
+    all_version = pkg.get("versions", {})
+    only_version = len(all_version) == 1
+    no_version = len(all_version) == 0
+
+    if not version or no_version or (only_version and version in all_version):
+        logger.info("unpublishing package '{}'".format(pkg_name))
+        res = requests.delete(
+            registry + pkg_name + "/-rev/" + pkg.get("_rev"),
+            headers=headers,
+            verify=False,
+        )
+        if res.status_code != 201:
+            raise Exception(
+                "failed to unpublish package '{}' with error: {}, status code: {}".format(
+                    pkg_name,
+                    res.json()["error"],
+                    res.status_code,
+                )
+            )
+        logger.info("successfully unpublish package '{}'".format(pkg_name))
+    else:
+        logger.info("unpublishing package '{}@{}'".format(pkg_name, version))
+        if version not in all_version:
+            logger.error("no version:{} available".format(version))
+            return
+        dist = all_version[version]["dist"]
+        all_version.pop(version)
+        dist_tags: Dict[str, str] = pkg["dist-tags"]
+        latest_version = dist_tags["latest"]
+        for tag in list(dist_tags.keys()):
+            if dist_tags[tag] == version:
+                dist_tags.pop(tag)
+        if latest_version == version:
+            dist_tags["latest"] = max(all_version)
+        pkg.pop("_revisions", None)
+        pkg.pop("_attachments", None)
+        pkg["dist-tags"] = dist_tags
+        pkg["versions"] = all_version
+        res = requests.put(
+            registry + pkg_name + "/-rev/" + pkg.get("_rev"),
+            json=pkg,
+            headers=headers,
+            verify=False,
+        )
+        if res.status_code != 201:
+            raise Exception(
+                "failed to unpublish package '{}' with error: {}, status code: {}".format(
+                    pkg_name,
+                    res.json()["error"],
+                    res.status_code,
+                )
+            )
+        new_pkg: dict = requests.get(registry + pkg_name, headers=headers, verify=False).json()
+        tarball_url = dist["tarball"]
+        res = requests.delete(
+            tarball_url + "/-rev/" + new_pkg.get("_rev"),
+            headers=headers,
+            verify=False,
+        )
+        if res.status_code != 201:
+            raise Exception(
+                "failed to unpublish package '{}' with error: {}, status code: {}".format(
+                    pkg_name,
+                    res.json()["error"],
+                    res.status_code,
+                )
+            )
+        logger.info("successfully unpublishing package '{}@{}'".format(pkg_name, version))
+
+
 def get_tar_name(name: str, version: str):
     return "{}-v{}.tgz".format(name, version)
 

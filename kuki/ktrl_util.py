@@ -45,8 +45,11 @@ def config_file(name: str, type: str, globalMode: False):
             global_process_dir if globalMode else local_process_dir,
             name + ".process.json",
         )
-        config = KTRL_INSTANCE
+        config = KTRL_INSTANCE.copy()
         all_keys = set(KTRL_PROCESS.keys())
+        if not globalMode:
+            config.pop("package")
+            config.pop("version")
 
     default_keys = set(config.keys())
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -66,6 +69,9 @@ def config_file(name: str, type: str, globalMode: False):
         if key == "args":
             input_value = input_value.split()
         config[key] = input_value if input_value else current_value
+        if key in ["file", "package", "version"] and not config[key]:
+            logger.error(key + " cannot be empty string")
+            return
 
     config_json = json.dumps(config, indent=2)
     logger.info("About to write to {}".format(path))
@@ -119,7 +125,13 @@ def start(profile_name: str, process_name: str, globalMode: False):
     else:
         package_path = Path.cwd()
 
-    file_path = Path.joinpath(package_path, "src", process_json.get("file"))
+    file_name: str = process_json.get("file")
+
+    file_path = Path.joinpath(
+        package_path,
+        "src",
+        file_name[4:] if file_name.startswith("src/") else file_name,
+    )
 
     options = generate_process_options([], process_json)
     # generate run command

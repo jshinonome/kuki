@@ -68,6 +68,13 @@ group.add_argument(
 )
 
 group.add_argument(
+    "--unpublish",
+    type=str,
+    help="unpublish a q/k package",
+)
+
+
+group.add_argument(
     "--pack",
     action="store_true",
     default=False,
@@ -144,6 +151,8 @@ def kuki(args: argparse.Namespace):
         registry_util.search_package(args.search)
     elif args.download:
         registry_util.download_entry(args.download)
+    elif args.unpublish:
+        registry_util.unpublish_package(args.unpublish)
     else:
         if args.globalMode:
             if isinstance(args.install, list):
