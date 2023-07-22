@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import re
 from pathlib import Path
 from typing import Dict, List, TypedDict
 
@@ -53,9 +54,12 @@ def generate_json(name: str, description="", author="", git="", package_type="q"
 
 def init():
     dir = os.path.basename(os.getcwd())
-    package = input("package name: ({}) ".format(dir)).strip()
+    package = input("package name: ({}) ".format(dir.lower())).strip()
     if not package:
-        package = dir
+        package = dir.lower()
+
+    is_valid_name(package)
+
     description = input("description: ").strip()
     author = input("author: ").strip()
     git = input("git repository: ").strip()
@@ -131,3 +135,9 @@ def load_pkg_index() -> Dict[str, Kuki]:
 def dump_pkg_index(kuki_index: Dict[str, Kuki]):
     with open(package_index_path, "w") as file:
         json.dump(kuki_index, file, indent=2)
+
+
+def is_valid_name(name: str) -> bool:
+    if re.fullmatch(r"(@[a-z-]+/)?[a-z-]+", name) is None:
+        logger.error("only allows lower cases(a-z) and hyphen(-) as the package name")
+        exit(1)

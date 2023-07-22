@@ -164,6 +164,8 @@ def publish_package():
     pkg_name = kuki.get("name")
     version = kuki.get("version")
 
+    package_util.is_valid_name(pkg_name)
+
     tar_name, tar_packed_size = pack_package(pkg_name, version)
 
     logger.info("publishing to {} with tag latest and default access".format(registry))

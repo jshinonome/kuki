@@ -11,7 +11,7 @@ logger = logging.getLogger()
 
 KTRL_PROFILE = PROFILE_DEFAULT
 KTRL_INSTANCE = {
-    "module": "",
+    "package": "",
     "version": "",
     "file": "",
     "dbPath": "",
@@ -107,19 +107,19 @@ def start(profile_name: str, process_name: str, globalMode: False):
         return
 
     if globalMode:
-        module_path = Path.joinpath(
+        package_path = Path.joinpath(
             config_util.global_kuki_root,
-            process_json.get("module"),
+            process_json.get("package"),
             process_json.get("version"),
         )
-        if not module_path.exists():
-            logger.error("Not such folder - {}".format(module_path))
+        if not package_path.exists():
+            logger.error("Not such folder - {}".format(package_path))
             return
-        os.chdir(module_path)
+        os.chdir(package_path)
     else:
-        module_path = Path.cwd()
+        package_path = Path.cwd()
 
-    file_path = Path.joinpath(module_path, "src", process_json.get("file"))
+    file_path = Path.joinpath(package_path, "src", process_json.get("file"))
 
     options = generate_process_options([], process_json)
     # generate run command
