@@ -185,6 +185,11 @@ def publish_package():
     pkg_name = kuki.get("name")
     version = kuki.get("version")
 
+    publisher = get_publisher(pkg_name)
+    if publisher != user:
+        logger.error("not allow to publish to other user's package")
+        return
+
     package_util.is_valid_name(pkg_name)
 
     tar_name, tar_packed_size = pack_package(pkg_name, version)
@@ -260,7 +265,8 @@ def unpublish_package(pkg_id: str):
     latest_version = dist_tags["latest"]
     publisher = pkg["versions"][latest_version]["publisher"]
     if user != publisher:
-        logger.error("not allowed to unpublish other publisher's package")
+        logger.error("not allowed to unpublish other user's package")
+        return
     all_version = pkg.get("versions", {})
     only_version = len(all_version) == 1
     no_version = len(all_version) == 0
