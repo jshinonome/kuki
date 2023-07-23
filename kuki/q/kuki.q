@@ -52,7 +52,7 @@ import:{[moduleFunc]
   module: moduleFunc[];
   path: first -3#value moduleFunc;
   path: 1_string first ` vs hsym `$path;
-  $[module like "./*"; .kuki.importLocal[path;module];.kuki.importGlobal[module]]
+  $[any module like/: ("./*";"../*"); .kuki.importLocal[path;module];.kuki.importGlobal[module]]
  };
 
 import {"./log"};

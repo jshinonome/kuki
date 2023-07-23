@@ -4,7 +4,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from .util import PROCESS_DEFAULT, PROFILE_DEFAULT, generate_cmd, generate_process_options
+from .util import PROFILE_DEFAULT, generate_cmd, generate_process_options
 
 FORMAT = "%(asctime)s %(levelname)s: %(message)s"
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
@@ -15,14 +15,8 @@ logger = logging.getLogger()
 
 kest_path = Path("kest.json")
 
-kest_process_default = PROCESS_DEFAULT.copy()
-
-kest_process_default.pop("blocked")
-kest_process_default.pop("replicate")
-kest_process_default.pop("disable_system_cmd")
-
 KEST_DEFAULT = {
-    "process": kest_process_default,
+    "process": {},
     "profile": PROFILE_DEFAULT,
 }
 
