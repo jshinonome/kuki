@@ -49,6 +49,7 @@ def generate_json(name: str, description="", author="", git="", package_type="q"
         dump_kuki(kuki)
         readme_path.touch()
         readme_path.write_text("# {name}\n\n- author: {author}\n- git: {git}\n".format(**kuki))
+        package_index_path.write_text("{}")
         src_path.mkdir(parents=True, exist_ok=True)
 
 
@@ -110,7 +111,7 @@ def load_kuki() -> Kuki:
 
 
 def load_include() -> List[str]:
-    includes = set(["src/*", "cfg/*", config_file, readme_file])
+    includes = set(["src/*", "cfg/*", config_file, index_file, readme_file])
     if package_include_path.exists():
         with open(package_include_path, "r") as file:
             while line := file.readline():
