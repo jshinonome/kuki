@@ -186,8 +186,8 @@ def publish_package():
     version = kuki.get("version")
 
     publisher = get_publisher(pkg_name)
-    if publisher != user:
-        logger.error("not allow to publish to other user's package")
+    if publisher and publisher != user:
+        logger.error("not allowed to publish to other user's package")
         return
 
     package_util.is_valid_name(pkg_name)
