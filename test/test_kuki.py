@@ -261,6 +261,12 @@ def test_publish(monkeypatch: pytest.MonkeyPatch):
         status=201,
     )
 
+    responses.add(
+        responses.GET,
+        registry_util.registry + package_name,
+        status=404,
+    )
+
     monkeypatch.setattr("builtins.input", lambda _: "yes")
     package_util.generate_json(
         package_name, "a dummy package", "Saitama", "https://github.com/saitama/dummy"
@@ -290,6 +296,7 @@ def test_publish(monkeypatch: pytest.MonkeyPatch):
     source_files.append("src/lib")
     source_files.append("README.md")
     source_files.append(package_util.config_file)
+    source_files.append(package_util.index_file)
 
     assert len(source_files) == len(tar_files)
 

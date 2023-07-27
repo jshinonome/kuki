@@ -411,7 +411,11 @@ def download_package(metadata: Metadata) -> str:
 
 def install_entry(pkgs: List[str]):
     try:
-        install_packages(pkgs, False)
+        for pkg in pkgs:
+            if pkg.startswith("."):
+                install_local_package(pkg)
+            else:
+                install_package(pkg, False)
         install_dependencies()
         package_util.dump_kuki(kuki_json)
         package_util.dump_pkg_index(package_index)
@@ -420,7 +424,7 @@ def install_entry(pkgs: List[str]):
         logger.error("failed to install packages with error: {}".format(e))
 
 
-def install_packages(pkgs: List[str], skip_updating_pkg_index=True, globalMode=False):
+def install_package(pkg: str, skip_updating_pkg_index=True, globalMode=False):
     package_type = kuki_json.get("type", "q")
 
     if package_type == "k":
@@ -430,61 +434,102 @@ def install_packages(pkgs: List[str], skip_updating_pkg_index=True, globalMode=F
     else:
         allow_package_types = ["q", "k"]
 
-    for pkg in pkgs:
-        if skip_updating_pkg_index:
-            logger.info("install dependency package '{}'".format(pkg))
-        else:
-            logger.info("install package '{}'".format(pkg))
-        metadata = get_metadata(pkg)
+    if skip_updating_pkg_index:
+        logger.info("installing dependency package '{}'".format(pkg))
+    else:
+        logger.info("installing package '{}'".format(pkg))
+    metadata = get_metadata(pkg)
 
-        if not metadata.get("type") in allow_package_types and not globalMode:
-            logger.error("")
-
-        name = metadata["name"]
-        if not globalMode and name == kuki_json["name"]:
-            logger.warning("shouldn't install itself, skip...")
-            return
-
-        version = metadata["version"]
-        pkg_id = get_pkg_id(metadata)
-
-        if not skip_updating_pkg_index and not globalMode:
-            kuki_json["dependencies"][name] = version
-
-        if not globalMode:
-            if name in package_index and version != package_index[name]["version"]:
-                logger.info("current '{}@{}' exists".format(name, package_index[name]["version"]))
-                if name in kuki_json["dependencies"]:
-                    version = kuki_json["dependencies"][name]
-                    logger.warning(
-                        "{} is a dependency package, force to use version {}".format(name, version)
-                    )
-                elif newer_than(version, package_index[name]["version"]):
-                    logger.warning("use newer '{}@{}'".format(name, version))
-                else:
-                    logger.warning("skip outdated '{}@{}'".format(name, version))
-                    continue
-
-            package_index[name] = metadata
-
-        if pkg_id in global_index and name in package_index:
-            logger.warning("{} is already installed, skip...".format(pkg_id))
-            continue
-        if pkg_id not in global_index:
-            # global index uses package id as keys, package index uses package name as keys
-            global_index[pkg_id] = metadata
-            install_packages(
-                [k + "@" + v for k, v in metadata["dependencies"].items()], True, globalMode
+    if not metadata.get("type", "q") in allow_package_types and not globalMode:
+        logger.error(
+            "Only allows to install package type '{}', Got package type '{}'".format(
+                allow_package_types, metadata.get("type", "q")
             )
-            install_package(metadata)
+        )
+        return
+    name = metadata["name"]
+    if not globalMode and name == kuki_json["name"]:
+        logger.warning("shouldn't install itself, skip...")
+        return
+
+    version = metadata["version"]
+    pkg_id = get_pkg_id(metadata)
+
+    if not skip_updating_pkg_index and not globalMode:
+        kuki_json["dependencies"][name] = version
+
+    if not globalMode:
+        if name in package_index and version != package_index[name]["version"]:
+            logger.info("current '{}@{}' exists".format(name, package_index[name]["version"]))
+            if name in kuki_json["dependencies"]:
+                version = kuki_json["dependencies"][name]
+                logger.warning(
+                    "{} is a dependency package, force to use version {}".format(name, version)
+                )
+            elif newer_than(version, package_index[name]["version"]):
+                logger.warning("use newer '{}@{}'".format(name, version))
+            else:
+                logger.warning("skip outdated '{}@{}'".format(name, version))
+                return
+
+        package_index[name] = metadata
+
+    if pkg_id in global_index and name in package_index:
+        logger.warning("{} is already installed in kuki root, skip...".format(pkg_id))
+        return
+    if pkg_id not in global_index:
+        # global index uses package id as keys, package index uses package name as keys
+        global_index[pkg_id] = metadata
+        for dep in [k + "@" + v for k, v in metadata["dependencies"].items()]:
+            install_package(dep, True, globalMode)
+        extract_package(metadata)
 
 
-def install_package(metadata: Metadata):
+def install_local_package(
+    local_pkg_tar: str,
+    skip_updating_pkg_index=True,
+    globalMode=False,
+):
+    logger.info("installing local package '{}'".format(local_pkg_tar))
+    local_pkg_tar_path = Path(local_pkg_tar)
+    if local_pkg_tar_path.exists():
+        tar = tarfile.open(local_pkg_tar_path)
+        file = tar.extractfile("kuki.json")
+        pkg_kuki_json: package_util.Kuki = json.load(file)
+    name = pkg_kuki_json["name"]
+    version = pkg_kuki_json["version"]
+    install_pkg_path = get_pkg_path(name, version)
+    if not install_pkg_path.exists():
+        install_pkg_path.mkdir(parents=True, exist_ok=True)
+    tar.extractall(install_pkg_path)
+    tar.close()
+
+    if not skip_updating_pkg_index and not globalMode:
+        kuki_json["dependencies"][name] = version
+
+    if not globalMode:
+        if name in package_index and version != package_index[name]["version"]:
+            logger.info("current '{}@{}' exists".format(name, package_index[name]["version"]))
+            if name in kuki_json["dependencies"]:
+                version = kuki_json["dependencies"][name]
+                logger.warning(
+                    "{} is a dependency package, force to use version {}".format(name, version)
+                )
+            elif newer_than(version, package_index[name]["version"]):
+                logger.warning("use newer '{}@{}'".format(name, version))
+            else:
+                logger.warning("skip outdated '{}@{}'".format(name, version))
+                return
+
+        package_index[name] = pkg_kuki_json
+    else:
+        global_index[get_pkg_id(pkg_kuki_json)] = pkg_kuki_json
+    logger.info("installed local package '{}'".format(local_pkg_tar))
+
+
+def extract_package(metadata: Metadata):
     pkg_filepath = download_package(metadata)
     pkg_path = get_pkg_path(metadata["name"], metadata["version"])
-    # already exists
-    if pkg_path.exists() and pkg_path.is_dir():
-        return
     if not pkg_path.exists():
         pkg_path.mkdir(parents=True, exist_ok=True)
     tar = tarfile.open(pkg_filepath, "r:gz")
@@ -552,4 +597,5 @@ def install_dependencies():
         pkg_id = get_pkg_id({"name": name, "version": version})
         logger.warning("missing '{}'".format(pkg_id))
         pending.append(pkg_id)
-    install_packages(pending)
+    for pkg in pending:
+        install_package(pkg)

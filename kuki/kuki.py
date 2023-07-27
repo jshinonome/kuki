@@ -156,8 +156,12 @@ def kuki(args: argparse.Namespace):
     else:
         if args.globalMode:
             if isinstance(args.install, list):
-                registry_util.install_packages(args.install, False, True)
-                registry_util.dump_global_index()
+                for pkg in args.install:
+                    if pkg.startswith("."):
+                        registry_util.install_local_package(pkg, False, True)
+                    else:
+                        registry_util.install_package(pkg, False, True)
+                    registry_util.dump_global_index()
         elif not package_util.exits():
             logger.error("kuki.json not found, use 'kuki --init' to init the package first")
             return
