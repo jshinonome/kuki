@@ -226,6 +226,7 @@ def publish_package():
                 "description": kuki.get("package", ""),
                 "author": {"name": kuki.get("author", "unknown")},
                 "publisher": user,
+                "type": kuki["type"],
                 "version": version,
                 "readme": package_util.load_readme(),
                 "dependencies": kuki.get("dependencies", {}),

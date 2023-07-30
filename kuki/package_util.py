@@ -24,6 +24,7 @@ class Kuki(TypedDict):
     description: str
     author: str
     git: str
+    type: str
     dependencies: Dict[str, str]
 
 
