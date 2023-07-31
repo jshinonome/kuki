@@ -19,7 +19,7 @@ urllib3.disable_warnings()
 
 logger = logging.getLogger()
 config = config_util.load_config()
-registry = config.get("registry", "https://kuki.ninja/")
+registry = config.get("registry", "https://www.kuki.ninja/")
 token = config.get("token", "")
 user = config.get("user", "")
 
@@ -211,6 +211,21 @@ def publish_package():
     with open(tar_name, "rb") as file:
         tar_base64 = base64.b64encode(file.read())
 
+    pkg_info = kuki.copy()
+
+    pkg_info.update(
+        {
+            "_id": "{}@{}".format(pkg_name, version),
+            "publisher": user,
+            "author": {"name": kuki.get("author", "unknown")},
+            "readme": package_util.load_readme(),
+            "dist": {
+                "shasum": shasum.hexdigest(),
+                "tarball": "{}{}/-/{}".format(registry, pkg_name, tar_name),
+            },
+        }
+    )
+
     data = {
         "_id": pkg_name,
         "name": pkg_name,
@@ -219,23 +234,7 @@ def publish_package():
             "latest": version,
         },
         "readme": package_util.load_readme(),
-        "versions": {
-            version: {
-                "_id": "{}@{}".format(pkg_name, version),
-                "name": pkg_name,
-                "description": kuki.get("package", ""),
-                "author": {"name": kuki.get("author", "unknown")},
-                "publisher": user,
-                "type": kuki["type"],
-                "version": version,
-                "readme": package_util.load_readme(),
-                "dependencies": kuki.get("dependencies", {}),
-                "dist": {
-                    "shasum": shasum.hexdigest(),
-                    "tarball": "{}{}/-/{}".format(registry, pkg_name, tar_name),
-                },
-            }
-        },
+        "versions": {version: pkg_info},
         "_attachments": {
             tar_name: {
                 "content_type": "application/octet-stream",
