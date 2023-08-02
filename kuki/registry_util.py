@@ -4,6 +4,7 @@ import hashlib
 import json
 import logging
 import os
+import re
 import shutil
 import tarfile
 from pathlib import Path
@@ -20,6 +21,8 @@ urllib3.disable_warnings()
 logger = logging.getLogger()
 config = config_util.load_config()
 registry = config.get("registry", "https://www.kuki.ninja/")
+if not registry.endswith("/"):
+    registry += "/"
 token = config.get("token", "")
 user = config.get("user", "")
 
@@ -111,11 +114,11 @@ def search_package(package: str):
         )
 
 
-def get_publisher(pkg_name: str) -> str:
+def get_publisher(org_name: str, pkg_name: str) -> str:
     headers = {
         "Authorization": "Bearer {}".format(token),
     }
-    res = requests.get(registry + pkg_name, headers=headers, verify=False)
+    res = requests.get(registry + org_name + pkg_name, headers=headers, verify=False)
     if res.status_code == 404:
         return ""
     else:
@@ -172,7 +175,7 @@ def pack_package(pkg_name: str, version: str):
 def pack_entry():
     try:
         kuki = package_util.load_kuki()
-        pkg_name = kuki.get("name")
+        _, pkg_name, _ = parse_package_name(kuki.get("name"))
         version = kuki.get("version")
         pack_package(pkg_name, version)
     except Exception as e:
@@ -182,15 +185,15 @@ def pack_entry():
 
 def publish_package():
     kuki = package_util.load_kuki()
-    pkg_name = kuki.get("name")
+    org_name, pkg_name, _ = parse_package_name(kuki.get("name"))
     version = kuki.get("version")
 
-    publisher = get_publisher(pkg_name)
+    publisher = get_publisher(org_name, pkg_name)
     if publisher and publisher != user:
         logger.error("not allowed to publish to other user's package")
         return
 
-    package_util.is_valid_name(pkg_name)
+    package_util.is_valid_name(org_name + pkg_name)
 
     tar_name, tar_packed_size = pack_package(pkg_name, version)
 
@@ -215,20 +218,20 @@ def publish_package():
 
     pkg_info.update(
         {
-            "_id": "{}@{}".format(pkg_name, version),
+            "_id": "{}@{}".format(org_name + pkg_name, version),
             "publisher": user,
             "author": {"name": kuki.get("author", "unknown")},
             "readme": package_util.load_readme(),
             "dist": {
                 "shasum": shasum.hexdigest(),
-                "tarball": "{}{}/-/{}".format(registry, pkg_name, tar_name),
+                "tarball": "{}{}/-/{}".format(registry, org_name + pkg_name, tar_name),
             },
         }
     )
 
     data = {
-        "_id": pkg_name,
-        "name": pkg_name,
+        "_id": org_name + pkg_name,
+        "name": org_name + pkg_name,
         "description": kuki.get("package", ""),
         "dist-tags": {
             "latest": version,
@@ -243,21 +246,28 @@ def publish_package():
             },
         },
     }
-    res = requests.put(registry + pkg_name, data=json.dumps(data), headers=headers, verify=False)
+    res = requests.put(
+        registry + org_name + pkg_name,
+        data=json.dumps(data),
+        headers=headers,
+        verify=False,
+    )
     if res.status_code != 201:
         raise Exception(
-            "failed to publish package '{}' with error: {}".format(pkg_name, res.json()["error"])
+            "failed to publish package '{}' with error: {}".format(
+                org_name + pkg_name, res.json()["error"]
+            )
         )
 
 
 def unpublish_package(pkg_id: str):
-    pkg_name, version = (pkg_id if "@" in pkg_id else pkg_id + "@").split("@")
+    org_name, pkg_name, version = parse_package_name(pkg_id)
 
     headers = {
         "Authorization": "Bearer {}".format(token),
     }
 
-    res = requests.get(registry + pkg_name, headers=headers, verify=False)
+    res = requests.get(registry + org_name + pkg_name, headers=headers, verify=False)
     pkg: dict = res.json()
     if res.status_code != 200:
         raise Exception(pkg.get("error"))
@@ -274,7 +284,7 @@ def unpublish_package(pkg_id: str):
     if not version or no_version or (only_version and version in all_version):
         logger.info("unpublishing package '{}'".format(pkg_name))
         res = requests.delete(
-            registry + pkg_name + "/-rev/" + pkg.get("_rev"),
+            registry + org_name + pkg_name + "/-rev/" + pkg.get("_rev"),
             headers=headers,
             verify=False,
         )
@@ -305,7 +315,7 @@ def unpublish_package(pkg_id: str):
         pkg["dist-tags"] = dist_tags
         pkg["versions"] = all_version
         res = requests.put(
-            registry + pkg_name + "/-rev/" + pkg.get("_rev"),
+            registry + org_name + pkg_name + "/-rev/" + pkg.get("_rev"),
             json=pkg,
             headers=headers,
             verify=False,
@@ -318,7 +328,9 @@ def unpublish_package(pkg_id: str):
                     res.status_code,
                 )
             )
-        new_pkg: dict = requests.get(registry + pkg_name, headers=headers, verify=False).json()
+        new_pkg: dict = requests.get(
+            registry + org_name + pkg_name, headers=headers, verify=False
+        ).json()
         tarball_url = dist["tarball"]
         res = requests.delete(
             tarball_url + "/-rev/" + new_pkg.get("_rev"),
@@ -341,20 +353,25 @@ def get_tar_name(name: str, version: str):
 
 
 def get_pkg_path(name: str, version: str):
-    return Path.joinpath(config_util.global_kuki_root, name, version)
+    return Path.joinpath(
+        config_util.global_kuki_root,
+        name.replace("/", os.sep),
+        version,
+    )
 
 
+# name@version
 def get_pkg_id(metadata: Metadata):
     return "{}@{}".format(metadata["name"], metadata["version"])
 
 
 def get_metadata(name: str) -> Metadata:
-    pkg_name, version = (name if "@" in name else name + "@").split("@")
+    org_name, pkg_name, version = parse_package_name(name)
     headers = {
         "Authorization": "Bearer {}".format(token),
     }
     if not version:
-        res = requests.get(registry + name, headers=headers, verify=False)
+        res = requests.get(registry + org_name + pkg_name, headers=headers, verify=False)
         res_json = res.json()
         if res.status_code != 200:
             raise Exception(res_json.get("error"))
@@ -362,7 +379,9 @@ def get_metadata(name: str) -> Metadata:
         metadata = res_json["versions"][version]
     else:
         res = requests.get(
-            "{}{}/{}".format(registry, pkg_name, version), headers=headers, verify=False
+            "{}{}/{}".format(registry, org_name + pkg_name, version),
+            headers=headers,
+            verify=False,
         )
         metadata = res.json()
         if res.status_code != 200:
@@ -575,7 +594,8 @@ def newer_than(version1: str, version2: str) -> bool:
 
 def uninstall_packages(pkgs: List[str]):
     for pkg in pkgs:
-        name = pkg.split("@")[0]
+        org_name, pkg_name, _ = parse_package_name(pkg)
+        name = org_name + pkg_name
         if name in kuki_json["dependencies"]:
             logger.info("remove {} from dependencies".format(name))
             kuki_json["dependencies"].pop(name)
@@ -599,3 +619,12 @@ def install_dependencies():
         pending.append(pkg_id)
     for pkg in pending:
         install_package(pkg)
+
+
+def parse_package_name(pkg_name: str) -> tuple[str, str, str]:
+    pattern = r"(@[a-z-]+/)?([a-z-]+)(?:@([0-9]+\.[0-9]+\.[0-9]+))?"
+    if re.fullmatch(pattern, pkg_name):
+        groups = re.match(pattern, pkg_name).groups()
+        return tuple(g if g else "" for g in groups)
+    else:
+        raise Exception("failed to parse package name - " + pkg_name)

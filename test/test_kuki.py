@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 import tarfile
 from pathlib import Path
 from typing import List
@@ -54,23 +55,25 @@ def tmp_dir(tmp_path_factory: pytest.TempPathFactory, monkeypatch: pytest.Monkey
 def mock_package_api(request: pytest.FixtureRequest):
     registry = registry_util.registry
     older_pkg_ids = ["csv-v0.0.1.tgz", "file-v1.0.0.tgz", "log-v0.1.0.tgz"]
-    for pkg in Path.joinpath(request.path.parent, "data").glob("**/*"):
-        name, version = str(pkg.name)[:-4].split("-v")
-        tar = tarfile.open(str(pkg), "r:gz")
+    pkg_dir_path = Path.joinpath(request.path.parent, "data")
+    for pkg_path in pkg_dir_path.glob("**/*.tgz"):
+        pkg_relative_path = os.path.relpath(pkg_path, pkg_dir_path)
+        name, version = str(pkg_relative_path)[:-4].split("-v")
+        tar = tarfile.open(str(pkg_path), "r:gz")
         kuki = json.load(tar.extractfile(package_util.config_file))
         kuki["author"] = {"name": kuki["author"]}
-        tar_url = "{}{}/-/{}".format(registry, name, pkg.name)
+        tar_url = "{}{}/-/{}".format(registry, name, pkg_path.name)
         kuki["dist"] = {"tarball": tar_url}
         pkg_json = {
             "dist-tags": {"latest": version},
             "versions": {version: kuki},
         }
-        if str(pkg.name) not in older_pkg_ids:
+        if str(pkg_path.name) not in older_pkg_ids:
             responses.add(responses.GET, registry + name, json=pkg_json, status=200)
         responses.add(
             responses.GET, "{}{}/{}".format(registry, name, version), json=kuki, status=200
         )
-        with open(pkg, "rb") as file:
+        with open(pkg_path, "rb") as file:
             responses.add(
                 responses.GET,
                 tar_url,
@@ -337,6 +340,7 @@ def test_publish(monkeypatch: pytest.MonkeyPatch):
         ("--download log", "log-v0.1.1.tgz"),
         ("--download log@0.1.0", "log-v0.1.0.tgz"),
         ("--download file", "file-v1.0.1.tgz"),
+        ("--download @one-punch/lodash", "lodash-v0.0.1.tgz"),
     ],
 )
 @responses.activate
@@ -379,6 +383,17 @@ def test_download(
             ["file", "log"],
             ["file", "log"],
         ),
+        (
+            "--install @one-punch/lodash@0.0.1",
+            [
+                "@one-punch/lodash@0.0.1",
+                "@one-punch/kodash@0.0.1",
+                "file@1.0.1",
+                "log@0.1.1",
+            ],
+            ["@one-punch/lodash", "@one-punch/kodash", "file", "log"],
+            ["@one-punch/lodash"],
+        ),
     ],
 )
 @responses.activate
@@ -401,8 +416,12 @@ def test_install(
 
     for pkg_id in expected_index:
         assert pkg_id in global_index
-        name, version = pkg_id.split("@")
-        pkg_dir = Path.joinpath(config_util.global_kuki_root, name, version)
+        org_name, pkg_name, version = registry_util.parse_package_name(pkg_id)
+        pkg_dir = Path.joinpath(
+            config_util.global_kuki_root,
+            org_name + pkg_name,
+            version,
+        )
         assert Path.joinpath(pkg_dir, package_util.config_file).exists()
 
     pkg_index = package_util.load_pkg_index()
@@ -437,6 +456,15 @@ def test_install(
             "--global --install file log@0.1.0",
             ["file@1.0.1", "log@0.1.1", "log@0.1.0"],
         ),
+        (
+            "--global --install @one-punch/lodash",
+            [
+                "@one-punch/lodash@0.0.1",
+                "@one-punch/kodash@0.0.1",
+                "file@1.0.1",
+                "log@0.1.1",
+            ],
+        ),
     ],
 )
 @responses.activate
@@ -451,8 +479,8 @@ def test_install_in_global_mode(
 
     for pkg_id in expected_index:
         assert pkg_id in global_index
-        name, version = pkg_id.split("@")
-        pkg_dir = Path.joinpath(config_util.global_kuki_root, name, version)
+        org_name, pkg_name, version = registry_util.parse_package_name(pkg_id)
+        pkg_dir = Path.joinpath(config_util.global_kuki_root, org_name, pkg_name, version)
         assert Path.joinpath(pkg_dir, package_util.config_file).exists()
 
 
@@ -515,3 +543,27 @@ def test_uninstall(
     assert len(dependencies) == len(expected_deps)
     for dep in expected_deps:
         assert dep in dependencies
+
+
+@pytest.mark.parametrize(
+    "pkg_name, expected",
+    [
+        ("@one-punch/saitama@0.0.1", ("@one-punch/", "saitama", "0.0.1")),
+        ("saitama@0.0.1", ("", "saitama", "0.0.1")),
+        ("@one-punch/saitama", ("@one-punch/", "saitama", "")),
+        ("saitama", ("", "saitama", "")),
+    ],
+)
+def test_parse_pkg_name(pkg_name, expected):
+    assert registry_util.parse_package_name(pkg_name) == expected
+
+
+def test_fail_to_parse_pkg_name():
+    for pkg_name in [
+        "@one-punch",
+        "@0.0.1",
+        "@one-punch saitama 0.0.1",
+        "@one-punch@saitama@0.0.1",
+    ]:
+        with pytest.raises(Exception):
+            registry_util.parse_package_name(pkg_name)
