@@ -36,9 +36,10 @@ def load_config() -> Kukirc:
 
 def update_config(field: str, value: str):
     if not value:
-        kukirc = load_config()
-        delattr(kukirc, field)
+        kukirc: Kukirc = load_config()
         logger.info("Empty value for {}, removing existing value".format(field))
+        if field in kukirc:
+            kukirc.pop(field)
     else:
         logger.info("update '{}' of {}".format(field, config_file))
         kukirc = load_config()
