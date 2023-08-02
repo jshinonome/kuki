@@ -258,6 +258,7 @@ def publish_package():
                 org_name + pkg_name, res.json()["error"]
             )
         )
+    logger.info("successfully published {}{}@{}".format(org_name, pkg_name, version))
 
 
 def unpublish_package(pkg_id: str):
