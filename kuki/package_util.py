@@ -18,17 +18,22 @@ package_include_path = Path(".kukiinclude")
 package_index_path = Path(index_file)
 
 
+class Repository(TypedDict):
+    type: str
+    url: str
+
+
 class Kuki(TypedDict):
     name: str
     version: str
     description: str
     author: str
-    git: str
+    repository: Repository
     type: str
     dependencies: Dict[str, str]
 
 
-def generate_json(name: str, description="", author="", git="", package_type="q"):
+def generate_json(name: str, description="", author="", repository="", package_type="q"):
     if package_config_path.exists():
         overwrite = input("kuki.json already exists, overwrite: (yes/No) ").strip()
         if not overwrite or not overwrite.lower() in ["yes"]:
@@ -38,7 +43,10 @@ def generate_json(name: str, description="", author="", git="", package_type="q"
         "version": "0.0.1",
         "description": description,
         "author": author,
-        "git": git,
+        "repository": {
+            "type": "git",
+            "url": repository,
+        },
         "type": package_type,
         "dependencies": {},
     }
@@ -49,7 +57,9 @@ def generate_json(name: str, description="", author="", git="", package_type="q"
     if not proceed or proceed.lower() == "yes":
         dump_kuki(kuki)
         readme_path.touch()
-        readme_path.write_text("# {name}\n\n- author: {author}\n- git: {git}\n".format(**kuki))
+        readme_path.write_text(
+            "# {name}\n\n- author: {author}\n- repository: {repository}\n".format(**kuki)
+        )
         package_index_path.write_text("{}")
         src_path.mkdir(parents=True, exist_ok=True)
 
@@ -64,7 +74,7 @@ def init():
 
     description = input("description: ").strip()
     author = input("author: ").strip()
-    git = input("git repository: ").strip()
+    repository = input("git repository: ").strip()
     package_type = input("package type: (q)").strip()
     if not package_type:
         package_type = "q"
@@ -72,7 +82,7 @@ def init():
         logger.error("only support q, k, or k9 package type")
         return
 
-    generate_json(package, description, author, git, package_type)
+    generate_json(package, description, author, repository, package_type)
 
 
 def dump_kuki(kuki: Kuki):

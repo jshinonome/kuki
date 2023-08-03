@@ -124,7 +124,7 @@ def get_publisher(org_name: str, pkg_name: str) -> str:
     else:
         pkg = res.json()
         latest_version = pkg["dist-tags"]["latest"]
-        return pkg["versions"][latest_version]["publisher"]
+        return pkg["versions"][latest_version].get("publisher", "")
 
 
 def publish_entry():
@@ -236,10 +236,9 @@ def publish_package():
         "dist-tags": {
             "latest": version,
         },
-        "readme": package_util.load_readme(),
         "versions": {version: pkg_info},
         "_attachments": {
-            tar_name: {
+            (org_name + tar_name): {
                 "content_type": "application/octet-stream",
                 "data": tar_base64.decode("ascii"),
                 "length": tar_packed_size,
@@ -252,7 +251,7 @@ def publish_package():
         headers=headers,
         verify=False,
     )
-    if res.status_code != 201:
+    if res.status_code not in [200, 201]:
         raise Exception(
             "failed to publish package '{}' with error: {}".format(
                 org_name + pkg_name, res.json()["error"]
@@ -274,8 +273,8 @@ def unpublish_package(pkg_id: str):
         raise Exception(pkg.get("error"))
     dist_tags: Dict[str, str] = pkg["dist-tags"]
     latest_version = dist_tags["latest"]
-    publisher = pkg["versions"][latest_version]["publisher"]
-    if user != publisher:
+    publisher = pkg["versions"][latest_version].get("publisher", "")
+    if publisher and user != publisher:
         logger.error("not allowed to unpublish other user's package")
         return
     all_version = pkg.get("versions", {})
@@ -285,15 +284,19 @@ def unpublish_package(pkg_id: str):
     if not version or no_version or (only_version and version in all_version):
         logger.info("unpublishing package '{}'".format(pkg_name))
         res = requests.delete(
-            registry + org_name + pkg_name + "/-rev/" + pkg.get("_rev"),
+            registry + org_name + pkg_name + "/-rev/" + pkg.get("_rev", ""),
             headers=headers,
             verify=False,
         )
-        if res.status_code != 201:
+        if res.status_code not in [200, 201]:
+            try:
+                error_msg = res.json().get("error", "")
+            except Exception:
+                error_msg = res.text
             raise Exception(
                 "failed to unpublish package '{}' with error: {}, status code: {}".format(
                     pkg_name,
-                    res.json()["error"],
+                    error_msg,
                     res.status_code,
                 )
             )
@@ -350,7 +353,8 @@ def unpublish_package(pkg_id: str):
 
 
 def get_tar_name(name: str, version: str):
-    return "{}-v{}.tgz".format(name, version)
+    # github requires this format
+    return "{}-{}.tgz".format(name, version)
 
 
 def get_pkg_path(name: str, version: str):
@@ -500,7 +504,7 @@ def install_package(pkg: str, skip_updating_pkg_index=True, globalMode=False):
     if pkg_id not in global_index:
         # global index uses package id as keys, package index uses package name as keys
         global_index[pkg_id] = metadata
-        for dep in [k + "@" + v for k, v in metadata["dependencies"].items()]:
+        for dep in [k + "@" + v for k, v in metadata.get("dependencies", {}).items()]:
             install_package(dep, True, globalMode)
         extract_package(metadata)
 
@@ -610,7 +614,7 @@ def dump_global_index():
 
 
 def install_dependencies():
-    deps = kuki_json["dependencies"]
+    deps = kuki_json.get("dependencies", [])
     pending = []
     for name, version in deps.items():
         if name in package_index and version == package_index[name]["version"]:

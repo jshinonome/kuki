@@ -137,7 +137,11 @@ def test_init(monkeypatch: pytest.MonkeyPatch):
     assert kuki_json.get("name") == "dummy"
     assert kuki_json.get("description") == "a dummy package"
     assert kuki_json.get("author") == "Saitama"
-    assert kuki_json.get("git") == "https://github.com/saitama/dummy"
+    assert kuki_json.get("type") == "q"
+    assert kuki_json.get("repository") == {
+        "type": "git",
+        "url": "https://github.com/saitama/dummy",
+    }
     assert kuki_json.get("version") == "0.0.1"
     assert kuki_json.get("dependencies") == {}
 
