@@ -53,7 +53,7 @@ def tmp_dir(tmp_path_factory: pytest.TempPathFactory, monkeypatch: pytest.Monkey
 
 @pytest.fixture(scope="function")
 def mock_package_api(request: pytest.FixtureRequest):
-    registry = registry_util.registry
+    registry, _, _ = config_util.get_reg_cfg()
     older_pkg_ids = ["csv-v0.0.1.tgz", "file-v1.0.0.tgz", "log-v0.1.0.tgz"]
     pkg_dir_path = Path.joinpath(request.path.parent, "data")
     for pkg_path in pkg_dir_path.glob("**/*.tgz"):
@@ -88,11 +88,19 @@ def run_kuki(arg: str):
     kuki.kuki(args)
 
 
+@pytest.mark.parametrize(
+    "arg, scope",
+    [
+        ("", ""),
+        (" --scope=one-punch", "@one-punch/"),
+    ],
+)
 @responses.activate
-def test_adduser(monkeypatch: pytest.MonkeyPatch):
+def test_adduser(monkeypatch: pytest.MonkeyPatch, arg: str, scope: str):
+    registry, _, _ = config_util.get_reg_cfg()
     responses.add(
         responses.PUT,
-        registry_util.user_url + "test",
+        registry + registry_util.USER_API + "test",
         json={"token": "7IForS1HdYwD7wgFxXGMTA=="},
         status=201,
     )
@@ -100,23 +108,47 @@ def test_adduser(monkeypatch: pytest.MonkeyPatch):
     password_inputs = iter(["password", "password"])
     monkeypatch.setattr("builtins.input", lambda _: next(inputs))
     monkeypatch.setattr("getpass.getpass", lambda _: next(password_inputs))
-    run_kuki("--adduser")
-    assert config_util.load_config()["token"] == "7IForS1HdYwD7wgFxXGMTA=="
+    run_kuki("--adduser" + arg)
+    _, token, user = config_util.get_reg_cfg(scope)
+    assert token == "7IForS1HdYwD7wgFxXGMTA=="
+    assert user == "test"
+    assert registry == config_util.DEFAULT_REGISTRY
 
 
 @pytest.mark.parametrize(
-    "command_params, expected_token, expected_registry",
+    "command_params, expected_token, expected_registry, scope",
     [
-        ("--config token=t0ken", "t0ken", ""),
-        ("--config registry=http://localhost", "", "http://localhost"),
-        ("--config token=t0ken registry=http://localhost", "t0ken", "http://localhost"),
+        (
+            "--config token=t0ken",
+            "t0ken",
+            config_util.DEFAULT_REGISTRY,
+            "",
+        ),
+        (
+            "--config registry=http://localhost",
+            "",
+            "http://localhost/",
+            "@default/",
+        ),
+        (
+            "--config token=t0ken registry=http://localhost",
+            "t0ken",
+            "http://localhost/",
+            "",
+        ),
+        (
+            "--config token=t0ken registry=http://localhost --scope=one-punch",
+            "t0ken",
+            "http://localhost/",
+            "@one-punch/",
+        ),
     ],
 )
-def test_config(command_params, expected_token, expected_registry):
+def test_config(command_params, expected_token, expected_registry, scope):
     run_kuki(command_params)
-    config = config_util.load_config()
-    assert config.get("token", "") == expected_token
-    assert config.get("registry", "") == expected_registry
+    registry, token, _ = config_util.get_reg_cfg(scope)
+    assert token == expected_token
+    assert registry == expected_registry
 
 
 def test_init(monkeypatch: pytest.MonkeyPatch):
@@ -167,9 +199,10 @@ def test_init(monkeypatch: pytest.MonkeyPatch):
 
 @responses.activate
 def test_login(monkeypatch: pytest.MonkeyPatch):
+    registry, _, _ = config_util.get_reg_cfg()
     responses.add(
         responses.PUT,
-        registry_util.user_url + "test",
+        registry + registry_util.USER_API + "test",
         json={"token": "7IForS1HdYwD7wgFxXGMTA=="},
         status=201,
     )
@@ -178,11 +211,13 @@ def test_login(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr("builtins.input", lambda _: next(inputs))
     monkeypatch.setattr("getpass.getpass", lambda _: next(password_inputs))
     run_kuki("--login")
-    assert config_util.load_config()["token"] == "7IForS1HdYwD7wgFxXGMTA=="
+    _, token, _ = config_util.get_reg_cfg()
+    assert token == "7IForS1HdYwD7wgFxXGMTA=="
 
 
 @responses.activate
 def test_search():
+    registry, _, _ = config_util.get_reg_cfg()
     search_result = {
         "objects": [
             {
@@ -209,7 +244,7 @@ def test_search():
     }
     responses.add(
         responses.GET,
-        registry_util.search_url.format("dummy"),
+        registry + registry_util.SEARCH_API + "dummy",
         json=search_result,
         status=201,
     )
@@ -262,15 +297,16 @@ def test_version(monkeypatch: pytest.MonkeyPatch):
 @responses.activate
 def test_publish(monkeypatch: pytest.MonkeyPatch):
     package_name = "dummy"
+    registry, _, _ = config_util.get_reg_cfg()
     responses.add(
         responses.PUT,
-        registry_util.registry + package_name,
+        registry + package_name,
         status=201,
     )
 
     responses.add(
         responses.GET,
-        registry_util.registry + package_name,
+        registry + package_name,
         status=404,
     )
 
@@ -420,10 +456,10 @@ def test_install(
 
     for pkg_id in expected_index:
         assert pkg_id in global_index
-        org_name, pkg_name, version = registry_util.parse_package_name(pkg_id)
+        scope, pkg_name, version = registry_util.parse_package_name(pkg_id)
         pkg_dir = Path.joinpath(
             config_util.global_kuki_root,
-            org_name + pkg_name,
+            scope + pkg_name,
             version,
         )
         assert Path.joinpath(pkg_dir, package_util.config_file).exists()
@@ -483,8 +519,8 @@ def test_install_in_global_mode(
 
     for pkg_id in expected_index:
         assert pkg_id in global_index
-        org_name, pkg_name, version = registry_util.parse_package_name(pkg_id)
-        pkg_dir = Path.joinpath(config_util.global_kuki_root, org_name, pkg_name, version)
+        scope, pkg_name, version = registry_util.parse_package_name(pkg_id)
+        pkg_dir = Path.joinpath(config_util.global_kuki_root, scope, pkg_name, version)
         assert Path.joinpath(pkg_dir, package_util.config_file).exists()
 
 

@@ -19,13 +19,9 @@ from . import config_util, package_util
 urllib3.disable_warnings()
 
 logger = logging.getLogger()
-config = config_util.load_config()
-registry = config.get("registry", "https://www.kuki.ninja/")
-if not registry.endswith("/"):
-    registry += "/"
-token = config.get("token", "")
-user = config.get("user", "")
 
+SEARCH_API = "-/v1/search?text="
+USER_API = "-/user/org.couchdb.user:"
 global_cache_dir = Path.joinpath(config_util.global_kuki_root, "_cache")
 global_index_path = Path.joinpath(config_util.global_kuki_root, ".index")
 
@@ -35,9 +31,6 @@ if global_cache_dir.exists() and not global_cache_dir.is_dir():
     os.remove(str(global_cache_dir))
 
 global_cache_dir.mkdir(parents=True, exist_ok=True)
-
-user_url = registry + "-/user/org.couchdb.user:"
-search_url = registry + "-/v1/search?text={}"
 
 package_index = package_util.load_pkg_index()
 
@@ -61,22 +54,25 @@ def load_global_index() -> Dict[str, package_util.Kuki]:
 global_index = load_global_index()
 
 
-def add_user(user: str, password: str, email: str):
+def add_user(user: str, password: str, email: str, scope: str, registry: str):
+    user_url = registry + USER_API
     payload = {"name": user, "password": password, "email": email}
     headers = {"Accept": "application/json", "Content-Type": "application/json"}
     res = requests.put(user_url + user, json.dumps(payload), headers=headers, verify=False)
 
     if res.status_code == 201:
-        logger.info("the user '{}' has been added".format(user))
+        logger.info("the user '{}' has been added for {}".format(user, registry))
         token = res.json()["token"]
-        config_util.update_config("token", token)
-        config_util.update_config("user", user)
+        config_util.update_config("token", token, scope)
+        config_util.update_config("user", user, scope)
     else:
         logger.error("failed to add user: " + user)
         logger.error("status code: {}, error: {}".format(res.status_code, res.json()["error"]))
 
 
-def login(user: str, password: str):
+def login(user: str, password: str, scope: str, registry: str):
+    user_url = registry + "-/user/org.couchdb.user:"
+
     basic_auth = HTTPBasicAuth(user, password)
     payload = {"name": user, "password": password}
     headers = {"Accept": "application/json", "Content-Type": "application/json"}
@@ -86,15 +82,18 @@ def login(user: str, password: str):
     if res.status_code == 201:
         logger.info("you are authenticated as '{}'".format(user))
         token = res.json()["token"]
-        config_util.update_config("token", token)
-        config_util.update_config("user", user)
+        config_util.update_config("token", token, scope)
+        config_util.update_config("user", user, scope)
+        config_util.update_config("registry", registry, scope)
     else:
         logger.error("failed to authenticated as '{}'".format(user))
         logger.error("status code: {}, error: {}".format(res.status_code, res.json()["error"]))
 
 
-def search_package(package: str):
-    res = requests.get(search_url.format(package), verify=False)
+def search_package(package: str, scope: str):
+    registry, _, _ = config_util.get_reg_cfg(scope)
+    search_url = registry + SEARCH_API
+    res = requests.get(search_url + package, verify=False)
     logger.info(
         "{:20.20} | {:20.20} | {:20.20} | {:10.10} | {:10.10} | {:10.10}".format(
             "NAME", "DESCRIPTION", "AUTHOR", "DATE", "VERSION", "KEYWORDS"
@@ -114,11 +113,12 @@ def search_package(package: str):
         )
 
 
-def get_publisher(org_name: str, pkg_name: str) -> str:
+def get_publisher(scope: str, pkg_name: str) -> str:
+    registry, token, _ = config_util.get_reg_cfg(scope)
     headers = {
         "Authorization": "Bearer {}".format(token),
     }
-    res = requests.get(registry + org_name + pkg_name, headers=headers, verify=False)
+    res = requests.get(registry + scope + pkg_name, headers=headers, verify=False)
     if res.status_code == 404:
         return ""
     else:
@@ -129,11 +129,6 @@ def get_publisher(org_name: str, pkg_name: str) -> str:
 
 def publish_entry():
     try:
-        if not user:
-            logger.error(
-                "run 'kuki --adduser' or 'kuki --login' first and then publish the package"
-            )
-            return
         publish_package()
     except Exception as e:
         logger.error("failed to publish")
@@ -185,15 +180,20 @@ def pack_entry():
 
 def publish_package():
     kuki = package_util.load_kuki()
-    org_name, pkg_name, _ = parse_package_name(kuki.get("name"))
+    scope, pkg_name, _ = parse_package_name(kuki.get("name"))
     version = kuki.get("version")
 
-    publisher = get_publisher(org_name, pkg_name)
+    registry, token, user = config_util.get_reg_cfg(scope)
+    if not user:
+        logger.error("run 'kuki --adduser' or 'kuki --login' first and then publish the package")
+        return
+
+    publisher = get_publisher(scope, pkg_name)
     if publisher and publisher != user:
         logger.error("not allowed to publish to other user's package")
         return
 
-    package_util.is_valid_name(org_name + pkg_name)
+    package_util.is_valid_name(scope + pkg_name)
 
     tar_name, tar_packed_size = pack_package(pkg_name, version)
 
@@ -218,27 +218,27 @@ def publish_package():
 
     pkg_info.update(
         {
-            "_id": "{}@{}".format(org_name + pkg_name, version),
+            "_id": "{}@{}".format(scope + pkg_name, version),
             "publisher": user,
             "author": {"name": kuki.get("author", "unknown")},
             "readme": package_util.load_readme(),
             "dist": {
                 "shasum": shasum.hexdigest(),
-                "tarball": "{}{}/-/{}".format(registry, org_name + pkg_name, tar_name),
+                "tarball": "{}{}/-/{}".format(registry, scope + pkg_name, tar_name),
             },
         }
     )
 
     data = {
-        "_id": org_name + pkg_name,
-        "name": org_name + pkg_name,
+        "_id": scope + pkg_name,
+        "name": scope + pkg_name,
         "description": kuki.get("package", ""),
         "dist-tags": {
             "latest": version,
         },
         "versions": {version: pkg_info},
         "_attachments": {
-            (org_name + tar_name): {
+            (scope + tar_name): {
                 "content_type": "application/octet-stream",
                 "data": tar_base64.decode("ascii"),
                 "length": tar_packed_size,
@@ -246,7 +246,7 @@ def publish_package():
         },
     }
     res = requests.put(
-        registry + org_name + pkg_name,
+        registry + scope + pkg_name,
         data=json.dumps(data),
         headers=headers,
         verify=False,
@@ -254,26 +254,31 @@ def publish_package():
     if res.status_code not in [200, 201]:
         raise Exception(
             "failed to publish package '{}' with error: {}".format(
-                org_name + pkg_name, res.json()["error"]
+                scope + pkg_name, res.json()["error"]
             )
         )
-    logger.info("successfully published {}{}@{}".format(org_name, pkg_name, version))
+    logger.info("successfully published {}{}@{}".format(scope, pkg_name, version))
 
 
 def unpublish_package(pkg_id: str):
-    org_name, pkg_name, version = parse_package_name(pkg_id)
+    scope, pkg_name, version = parse_package_name(pkg_id)
+    registry, token, user = config_util.get_reg_cfg(scope)
+    if not user:
+        logger.error("run 'kuki --adduser' or 'kuki --login' first and then unpublish the package")
+        return
 
     headers = {
         "Authorization": "Bearer {}".format(token),
     }
 
-    res = requests.get(registry + org_name + pkg_name, headers=headers, verify=False)
+    res = requests.get(registry + scope + pkg_name, headers=headers, verify=False)
     pkg: dict = res.json()
     if res.status_code != 200:
         raise Exception(pkg.get("error"))
     dist_tags: Dict[str, str] = pkg["dist-tags"]
     latest_version = dist_tags["latest"]
     publisher = pkg["versions"][latest_version].get("publisher", "")
+
     if publisher and user != publisher:
         logger.error("not allowed to unpublish other user's package")
         return
@@ -284,7 +289,7 @@ def unpublish_package(pkg_id: str):
     if not version or no_version or (only_version and version in all_version):
         logger.info("unpublishing package '{}'".format(pkg_name))
         res = requests.delete(
-            registry + org_name + pkg_name + "/-rev/" + pkg.get("_rev", ""),
+            registry + scope + pkg_name + "/-rev/" + pkg.get("_rev", ""),
             headers=headers,
             verify=False,
         )
@@ -319,7 +324,7 @@ def unpublish_package(pkg_id: str):
         pkg["dist-tags"] = dist_tags
         pkg["versions"] = all_version
         res = requests.put(
-            registry + org_name + pkg_name + "/-rev/" + pkg.get("_rev"),
+            registry + scope + pkg_name + "/-rev/" + pkg.get("_rev"),
             json=pkg,
             headers=headers,
             verify=False,
@@ -333,7 +338,7 @@ def unpublish_package(pkg_id: str):
                 )
             )
         new_pkg: dict = requests.get(
-            registry + org_name + pkg_name, headers=headers, verify=False
+            registry + scope + pkg_name, headers=headers, verify=False
         ).json()
         tarball_url = dist["tarball"]
         res = requests.delete(
@@ -371,12 +376,14 @@ def get_pkg_id(metadata: Metadata):
 
 
 def get_metadata(name: str) -> Metadata:
-    org_name, pkg_name, version = parse_package_name(name)
+    scope, pkg_name, version = parse_package_name(name)
+    registry, token, _ = config_util.get_reg_cfg(scope)
+
     headers = {
         "Authorization": "Bearer {}".format(token),
     }
     if not version:
-        res = requests.get(registry + org_name + pkg_name, headers=headers, verify=False)
+        res = requests.get(registry + scope + pkg_name, headers=headers, verify=False)
         res_json = res.json()
         if res.status_code != 200:
             raise Exception(res_json.get("error"))
@@ -384,7 +391,7 @@ def get_metadata(name: str) -> Metadata:
         metadata = res_json["versions"][version]
     else:
         res = requests.get(
-            "{}{}/{}".format(registry, org_name + pkg_name, version),
+            "{}{}/{}".format(registry, scope + pkg_name, version),
             headers=headers,
             verify=False,
         )
@@ -416,6 +423,9 @@ def download_entry(name: str):
 
 
 def download_package(metadata: Metadata) -> str:
+    scope, _, _ = parse_package_name(metadata["name"])
+    _, token, _ = config_util.get_reg_cfg(scope)
+
     tar_url = metadata["dist"]["tarball"]
     tar_name = os.path.basename(tar_url)
     cached_filepath = get_cached_filepath(tar_name)
@@ -599,8 +609,8 @@ def newer_than(version1: str, version2: str) -> bool:
 
 def uninstall_packages(pkgs: List[str]):
     for pkg in pkgs:
-        org_name, pkg_name, _ = parse_package_name(pkg)
-        name = org_name + pkg_name
+        scope, pkg_name, _ = parse_package_name(pkg)
+        name = scope + pkg_name
         if name in kuki_json["dependencies"]:
             logger.info("remove {} from dependencies".format(name))
             kuki_json["dependencies"].pop(name)

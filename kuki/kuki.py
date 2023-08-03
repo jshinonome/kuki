@@ -113,15 +113,38 @@ parser.add_argument(
     help="enable global mode",
 )
 
+parser.add_argument(
+    "--scope",
+    type=str,
+    default="@default/",
+    help="configure for @scope/, scoped packages",
+)
+
+parser.add_argument(
+    "--registry",
+    type=str,
+    default=config_util.DEFAULT_REGISTRY,
+    help="the kuki package registry",
+)
+
 
 def kuki(args: argparse.Namespace):
+    scope: str = args.scope
+    if not scope.startswith("@"):
+        scope = "@" + scope
+    if not scope.endswith("/"):
+        scope += "/"
+    registry: str = args.registry
+    if not registry.endswith("/"):
+        registry += "/"
+
     if args.config:
         for arg in args.config:
             if "=" in arg:
                 field, value = arg.split("=")
                 allowed_config_fields = ["token", "registry"]
                 if field in allowed_config_fields:
-                    config_util.update_config(field, value)
+                    config_util.update_config(field, value, scope)
                 else:
                     logger.warning("unknown config field: " + field)
                     logger.info("allowed config fields " + ",".join(allowed_config_fields))
@@ -140,15 +163,21 @@ def kuki(args: argparse.Namespace):
         logger.info("About to register '{}' with '{}'".format(user, password))
         proceed = input("Is this OK? (yes/no) ").strip()
         if proceed.lower() == "yes":
-            registry_util.add_user(user, password, email)
+            registry_util.add_user(
+                user,
+                password,
+                email,
+                scope,
+                registry,
+            )
         else:
             logger.info("Abort registering '{}'".format(user))
     elif args.login:
         user = input("Username: ")
         password = getpass.getpass("Password: ")
-        registry_util.login(user, password)
+        registry_util.login(user, password, scope, registry)
     elif args.search:
-        registry_util.search_package(args.search)
+        registry_util.search_package(args.search, scope)
     elif args.download:
         registry_util.download_entry(args.download)
     elif args.unpublish:
