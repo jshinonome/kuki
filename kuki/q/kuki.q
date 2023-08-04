@@ -39,8 +39,15 @@
 .kuki.importGlobal:{[module]
   subPaths: "/" vs module;
   moduleName: `$first subPaths;
+  n:$[module like "@*";2;1];
+  moduleName:`$ "/" sv n#subPaths;
   if[not moduleName in key .kuki.index; '"No module named - ", string moduleName];
-  path: .kuki.joinPath[.kuki.rootDir;(first subPaths;.kuki.index[moduleName;`version];"src"),(-1_ 1_subPaths), enlist .kuki.appendDotQ last subPaths];
+  path: .kuki.joinPath[.kuki.rootDir;
+    (n#subPaths),
+    (.kuki.index[moduleName;`version];"src"),
+    (-1_ n _ subPaths),
+    enlist .kuki.appendDotQ last subPaths
+  ];
   .kuki.importModule path
  };
 

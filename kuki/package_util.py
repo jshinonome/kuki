@@ -58,7 +58,7 @@ def generate_json(name: str, description="", author="", repository="", package_t
         dump_kuki(kuki)
         readme_path.touch()
         readme_path.write_text(
-            "# {name}\n\n- author: {author}\n- repository: {repository}\n".format(**kuki)
+            "# {}\n\n- author: {}\n- repository: {}\n".format(name, author, repository)
         )
         package_index_path.write_text("{}")
         src_path.mkdir(parents=True, exist_ok=True)
