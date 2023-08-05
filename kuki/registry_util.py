@@ -258,6 +258,14 @@ def publish_package():
             )
         )
     logger.info("successfully published {}{}@{}".format(scope, pkg_name, version))
+    if registry == config_util.DEFAULT_REGISTRY:
+        logger.info(
+            " - {}{}/{}/readme".format(
+                registry,
+                scope + pkg_name,
+                version,
+            )
+        )
 
 
 def unpublish_package(pkg_id: str):
