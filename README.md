@@ -12,4 +12,4 @@ Refer to [wiki](https://github.com/jshinonome/kuki/wiki) for documentations.
 
 ### Registry Site
 
-`kuki` can publish and install packages from central registry site [kuki.ninja](https://kuki.ninja/), thanks to [verdaccio](https://verdaccio.org/)
+`kuki` can publish and install packages from central registry site [kuki.ninja](https://kuki.ninja/)
