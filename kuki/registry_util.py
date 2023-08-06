@@ -87,7 +87,11 @@ def login(user: str, password: str, scope: str, registry: str):
         config_util.update_config("registry", registry, scope)
     else:
         logger.error("failed to authenticated as '{}'".format(user))
-        logger.error("status code: {}, error: {}".format(res.status_code, res.json()["error"]))
+        try:
+            error_msg = res.json().get("error", "")
+        except Exception:
+            error_msg = res.text
+        logger.error("status code: {}, error: {}".format(res.status_code, error_msg))
 
 
 def search_package(package: str, scope: str):
@@ -252,16 +256,23 @@ def publish_package():
         verify=False,
     )
     if res.status_code not in [200, 201]:
+        try:
+            error_msg = res.json().get("error", "")
+        except Exception:
+            error_msg = res.text
+        logger.error("status code: {}, error: {}".format(res.status_code, error_msg))
+
         raise Exception(
             "failed to publish package '{}' with error: {}".format(
-                scope + pkg_name, res.json()["error"]
+                scope + pkg_name,
+                error_msg,
             )
         )
     logger.info("successfully published {}{}@{}".format(scope, pkg_name, version))
     if registry == config_util.DEFAULT_REGISTRY:
         logger.info(
-            " - {}{}/{}/readme".format(
-                registry,
+            " - {}package/{}/{}/readme".format(
+                registry.replace("www.", ""),
                 scope + pkg_name,
                 version,
             )
@@ -284,8 +295,8 @@ def unpublish_package(pkg_id: str):
     if res.status_code != 200:
         raise Exception(pkg.get("error"))
     dist_tags: Dict[str, str] = pkg["dist-tags"]
-    latest_version = dist_tags["latest"]
-    publisher = pkg["versions"][latest_version].get("publisher", "")
+    latest_version = dist_tags.get("latest", "")
+    publisher = pkg["versions"].get(latest_version, {}).get("publisher", "")
 
     if publisher and user != publisher:
         logger.error("not allowed to unpublish other user's package")
