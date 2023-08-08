@@ -15,7 +15,7 @@
  }];
 
 .kest.Test["walk directory";{
-  .kest.Match[6;count .path.Walk "test/data"]
+  .kest.Match[8;count .path.Walk "test/data"]
  }];
 
 .kest.Test["glob directory";{
