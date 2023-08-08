@@ -1,5 +1,5 @@
 // delightful k test
-import {"./path"};
+import {"./path.q"};
 
 .kest.BeforeAll:{[function]
   `.kest.tests upsert enlist (.kest.currentFile;"BeforeAll";`BeforeAll;function);

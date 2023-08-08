@@ -135,7 +135,6 @@ def publish_entry():
     try:
         publish_package()
     except Exception as e:
-        logger.error("failed to publish")
         logger.error(e)
 
 
@@ -293,7 +292,8 @@ def unpublish_package(pkg_id: str):
     res = requests.get(registry + scope + pkg_name, headers=headers, verify=False)
     pkg: dict = res.json()
     if res.status_code != 200:
-        raise Exception(pkg.get("error"))
+        logger.error(pkg.get("error"))
+        return
     dist_tags: Dict[str, str] = pkg["dist-tags"]
     latest_version = dist_tags.get("latest", "")
     publisher = pkg["versions"].get(latest_version, {}).get("publisher", "")
@@ -342,8 +342,9 @@ def unpublish_package(pkg_id: str):
         pkg.pop("_attachments", None)
         pkg["dist-tags"] = dist_tags
         pkg["versions"] = all_version
+        pkg["time"].pop(version)
         res = requests.put(
-            registry + scope + pkg_name + "/-rev/" + pkg.get("_rev"),
+            registry + scope + pkg_name + "/-rev/" + pkg.get("_rev", ""),
             json=pkg,
             headers=headers,
             verify=False,
@@ -361,7 +362,7 @@ def unpublish_package(pkg_id: str):
         ).json()
         tarball_url = dist["tarball"]
         res = requests.delete(
-            tarball_url + "/-rev/" + new_pkg.get("_rev"),
+            tarball_url + "/-rev/" + new_pkg.get("_rev", ""),
             headers=headers,
             verify=False,
         )

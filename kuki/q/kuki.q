@@ -15,8 +15,6 @@
   first @[system;"realpath ", path;{'y, " - No such file or directory"}[;path]]
  };
 
-.kuki.appendDotQ:{ x,$[any x like/: ("*.q";"*.k");"";".q"] };
-
 .kuki.importModule:{[modulePath]
   realPath: .kuki.getRealPath modulePath;
   if[realPath in .kuki.importedModules;:(::)]
@@ -30,7 +28,7 @@
 
 .kuki.importLocal:{[path;module]
   if[0=count path;path:.kuki.path];
-  modulePath: .kuki.joinPath[path;.kuki.appendDotQ module];
+  modulePath: .kuki.joinPath[path;module];
   .kuki.importModule modulePath
  };
 
@@ -45,8 +43,7 @@
   path: .kuki.joinPath[.kuki.rootDir;
     (n#subPaths),
     (.kuki.index[moduleName;`version];"src"),
-    (-1_ n _ subPaths),
-    enlist .kuki.appendDotQ last subPaths
+    n _ subPaths
   ];
   .kuki.importModule path
  };
@@ -62,8 +59,8 @@ import:{[moduleFunc]
   $[any module like/: ("./*";"../*"); .kuki.importLocal[path;module];.kuki.importGlobal[module]]
  };
 
-import {"./log"};
-import {"./cli"};
-import {"./path"};
+import {"./log.q"};
+import {"./cli.q"};
+import {"./path.q"};
 
-import {"./",first .Q.opt[.z.x][`kScriptType]};
+import {"./",(first .Q.opt[.z.x][`kScriptType]),".q"};
