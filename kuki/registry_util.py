@@ -610,7 +610,7 @@ def refresh_package_index():
 
 
 def resolve_dependencies(current_package_index: Dict[str, package_util.Kuki], dep: str):
-    deps = current_package_index[dep]["dependencies"]
+    deps = current_package_index[dep].get("dependencies", {})
     for name in deps.keys():
         if name not in package_index:
             package_index[name] = current_package_index[name]

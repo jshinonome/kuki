@@ -26,6 +26,26 @@ import {"./path.q"};
   `.kest.tests upsert enlist (.kest.currentFile;description;`Test;function);
  };
 
+.kest.matchPattern:{[pattern;actual;item]
+  if[actual like pattern;
+    :1b;
+  ];
+  msg: "\n" sv (
+    "  ",item,"Mismatch Pattern";
+    "    Pattern: ", -3!pattern;
+    "    Received: ", -3!actual
+  );
+  .kest.raise msg;
+ };
+
+.kest.ToThrowAs:{[functionCall;errorPattern]
+  .kest.matchPattern[errorPattern;@[value;functionCall;{x}];"Error Msg "]
+ };
+
+.kest.MatchPattern:{[pattern;actual]
+  .kest.match[pattern;actual;""]
+ };
+
 .kest.ToThrow:{[functionCall;errorMsg]
   .kest.match[errorMsg;@[value;functionCall;{x}];"Error Msg "]
  };

@@ -39,7 +39,7 @@
   moduleName: `$first subPaths;
   n:$[module like "@*";2;1];
   moduleName:`$ "/" sv n#subPaths;
-  if[not moduleName in key .kuki.index; '"No module named - ", string moduleName];
+  if[not moduleName in key .kuki.index; '"Cannot find module named - ", string moduleName];
   path: .kuki.joinPath[.kuki.rootDir;
     (n#subPaths),
     (.kuki.index[moduleName;`version];"src"),
@@ -56,7 +56,11 @@ import:{[moduleFunc]
   module: moduleFunc[];
   path: first -3#value moduleFunc;
   path: 1_string first ` vs hsym `$path;
-  $[any module like/: ("./*";"../*"); .kuki.importLocal[path;module];.kuki.importGlobal[module]]
+  errHandler:{'"fail to import ",x," at ",y," - ", z}[module;path];
+  $[any module like/: ("./*";"../*");
+      .[.kuki.importLocal;(path;module);errHandler];
+      @[.kuki.importGlobal;module;errHandler]
+  ]
  };
 
 import {"./log.q"};
