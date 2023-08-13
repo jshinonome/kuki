@@ -89,33 +89,6 @@ def run_kuki(arg: str):
 
 
 @pytest.mark.parametrize(
-    "arg, scope",
-    [
-        ("", ""),
-        (" --scope=one-punch", "@one-punch/"),
-    ],
-)
-@responses.activate
-def test_adduser(monkeypatch: pytest.MonkeyPatch, arg: str, scope: str):
-    registry, _, _ = config_util.get_reg_cfg()
-    responses.add(
-        responses.PUT,
-        registry + registry_util.USER_API + "test",
-        json={"token": "7IForS1HdYwD7wgFxXGMTA=="},
-        status=201,
-    )
-    inputs = iter(["test", "test@test.com", "yes"])
-    password_inputs = iter(["password", "password"])
-    monkeypatch.setattr("builtins.input", lambda _: next(inputs))
-    monkeypatch.setattr("getpass.getpass", lambda _: next(password_inputs))
-    run_kuki("--adduser" + arg)
-    _, token, user = config_util.get_reg_cfg(scope)
-    assert token == "7IForS1HdYwD7wgFxXGMTA=="
-    assert user == "test"
-    assert registry == config_util.DEFAULT_REGISTRY
-
-
-@pytest.mark.parametrize(
     "command_params, expected_token, expected_registry, scope",
     [
         (
@@ -197,8 +170,15 @@ def test_init(monkeypatch: pytest.MonkeyPatch):
     assert kuki_json.get("name") == "dummy1"
 
 
+@pytest.mark.parametrize(
+    "arg, scope",
+    [
+        ("--login", ""),
+        ("--login --scope=one-punch", "@one-punch/"),
+    ],
+)
 @responses.activate
-def test_login(monkeypatch: pytest.MonkeyPatch):
+def test_adduser(monkeypatch: pytest.MonkeyPatch, arg: str, scope: str):
     registry, _, _ = config_util.get_reg_cfg()
     responses.add(
         responses.PUT,
@@ -210,9 +190,11 @@ def test_login(monkeypatch: pytest.MonkeyPatch):
     password_inputs = iter(["password"])
     monkeypatch.setattr("builtins.input", lambda _: next(inputs))
     monkeypatch.setattr("getpass.getpass", lambda _: next(password_inputs))
-    run_kuki("--login")
-    _, token, _ = config_util.get_reg_cfg()
+    run_kuki(arg)
+    _, token, user = config_util.get_reg_cfg(scope)
     assert token == "7IForS1HdYwD7wgFxXGMTA=="
+    assert user == "test"
+    assert registry == config_util.DEFAULT_REGISTRY
 
 
 @responses.activate

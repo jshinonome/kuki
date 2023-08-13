@@ -117,20 +117,6 @@ def search_package(package: str, scope: str):
         )
 
 
-def get_publisher(scope: str, pkg_name: str) -> str:
-    registry, token, _ = config_util.get_reg_cfg(scope)
-    headers = {
-        "Authorization": "Bearer {}".format(token),
-    }
-    res = requests.get(registry + scope + pkg_name, headers=headers, verify=False)
-    if res.status_code == 404:
-        return ""
-    else:
-        pkg = res.json()
-        latest_version = pkg["dist-tags"]["latest"]
-        return pkg["versions"][latest_version].get("publisher", "")
-
-
 def publish_entry():
     try:
         publish_package()
@@ -191,11 +177,6 @@ def publish_package():
         logger.error("run 'kuki --adduser' or 'kuki --login' first and then publish the package")
         return
 
-    publisher = get_publisher(scope, pkg_name)
-    if publisher and publisher != user:
-        logger.error("not allowed to publish to other user's package")
-        return
-
     package_util.is_valid_name(scope + pkg_name)
 
     tar_name, tar_packed_size = pack_package(pkg_name, version)
@@ -222,7 +203,6 @@ def publish_package():
     pkg_info.update(
         {
             "_id": "{}@{}".format(scope + pkg_name, version),
-            "publisher": user,
             "author": {"name": kuki.get("author", "unknown")},
             "readme": package_util.load_readme(),
             "dist": {
@@ -270,10 +250,9 @@ def publish_package():
     logger.info("successfully published {}{}@{}".format(scope, pkg_name, version))
     if registry == config_util.DEFAULT_REGISTRY:
         logger.info(
-            " - {}package/{}/{}/readme".format(
+            " - {}package/{}".format(
                 registry.replace("www.", ""),
                 scope + pkg_name,
-                version,
             )
         )
 
@@ -296,11 +275,7 @@ def unpublish_package(pkg_id: str):
         return
     dist_tags: Dict[str, str] = pkg["dist-tags"]
     latest_version = dist_tags.get("latest", "")
-    publisher = pkg["versions"].get(latest_version, {}).get("publisher", "")
 
-    if publisher and user != publisher:
-        logger.error("not allowed to unpublish other user's package")
-        return
     all_version = pkg.get("versions", {})
     only_version = len(all_version) == 1
     no_version = len(all_version) == 0

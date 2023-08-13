@@ -1,6 +1,8 @@
 import argparse
 import getpass
 import logging
+import sys
+import webbrowser
 
 from . import config_util, package_util, registry_util
 
@@ -153,25 +155,15 @@ def kuki(args: argparse.Namespace):
     elif args.init:
         package_util.init()
     elif args.adduser:
-        user = input("Username: ")
-        password = getpass.getpass("Password: ")
-        confirmed_pass = getpass.getpass("Confirm password: ")
-        if confirmed_pass != password:
-            logger.info("Password doesn't match, Try again")
-            return
-        email = input("Email: ")
-        logger.info("About to register '{}' with '{}'".format(user, password))
-        proceed = input("Is this OK? (yes/no) ").strip()
-        if proceed.lower() == "yes":
-            registry_util.add_user(
-                user,
-                password,
-                email,
-                scope,
-                registry,
-            )
-        else:
-            logger.info("Abort registering '{}'".format(user))
+        logger.info("Create your account at:")
+        logger.info(
+            "https://kuki.auth.ap-southeast-2.amazoncognito.com/signup?client_id=6r51ebpp6o14ecqsv8mvn2o160&response_type=code&scope=aws.cognito.signin.user.admin&redirect_uri=https%3A%2F%2Fkuki.ninja"  # noqa: E501
+        )
+        input("Press ENTER to open in the browser")
+        webbrowser.open(
+            "https://kuki.auth.ap-southeast-2.amazoncognito.com/signup?client_id=6r51ebpp6o14ecqsv8mvn2o160&response_type=code&scope=aws.cognito.signin.user.admin&redirect_uri=https%3A%2F%2Fkuki.ninja",  # noqa: E501
+            new=2,
+        )
     elif args.login:
         user = input("Username: ")
         password = getpass.getpass("Password: ")
@@ -208,4 +200,7 @@ def kuki(args: argparse.Namespace):
 
 def main():
     args = parser.parse_args()
-    kuki(args)
+    try:
+        kuki(args)
+    except KeyboardInterrupt:
+        sys.exit(0)
