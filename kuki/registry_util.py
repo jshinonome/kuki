@@ -500,11 +500,11 @@ def install_package(pkg: str, skip_updating_pkg_index=True, globalMode=False):
             else:
                 logger.warning("skip outdated '{}@{}'".format(name, version))
                 return
-
+        logger.info("updating dependencies")
         package_index[name] = metadata
 
     if pkg_id in global_index and name in package_index:
-        logger.warning("{} is already installed in kuki root, skip...".format(pkg_id))
+        logger.info("{} is already installed in kuki root".format(pkg_id))
         return
     if pkg_id not in global_index:
         # global index uses package id as keys, package index uses package name as keys

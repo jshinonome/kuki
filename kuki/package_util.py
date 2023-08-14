@@ -57,9 +57,7 @@ def generate_json(name: str, description="", author="", repository="", package_t
     if not proceed or proceed.lower() == "yes":
         dump_kuki(kuki)
         readme_path.touch()
-        readme_path.write_text(
-            "# {}\n\n- author: {}\n- repository: {}\n".format(name, author, repository)
-        )
+        readme_path.write_text("# {}\n\n- author: {}\n".format(name, author))
         package_index_path.write_text("{}")
         src_path.mkdir(parents=True, exist_ok=True)
 
@@ -88,6 +86,7 @@ def init():
 def dump_kuki(kuki: Kuki):
     with open(package_config_path, "w") as file:
         file.write(json.dumps(kuki, indent=2))
+        file.write("\n")
 
 
 def exits():
