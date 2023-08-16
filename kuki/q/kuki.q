@@ -67,4 +67,11 @@ import {"./log.q"};
 import {"./cli.q"};
 import {"./path.q"};
 
-import {"./",(first .Q.opt[.z.x][`kScriptType]),".q"};
+.kuki.kScriptType:first .Q.opt[.z.x][`kScriptType];
+
+import {"./",.kuki.kScriptType,".q"};
+
+// trigger .kest.run here so that error is not trapped in importing
+if[.kuki.kScriptType like "kest";
+  .kest.run[hsym .cli.args`testRoot];
+ ];
