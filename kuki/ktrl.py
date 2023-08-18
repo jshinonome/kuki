@@ -34,7 +34,7 @@ parser.add_argument(
     help="process name",
 )
 
-group = parser.add_mutually_exclusive_group()
+group = parser.add_mutually_exclusive_group(required=True)
 
 group.add_argument(
     "-l",
@@ -84,4 +84,5 @@ def ktrl(args: argparse.Namespace):
 
 def main():
     args = parser.parse_args()
+    # print help if no --config, --list or --start
     ktrl(args)

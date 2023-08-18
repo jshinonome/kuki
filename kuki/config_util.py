@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import re
 from pathlib import Path
 from typing import Dict, TypedDict
 
@@ -55,7 +56,17 @@ def load_config() -> Dict[str, RegistryCfg]:
             return json.load(file)
 
 
+def validate_scope(scope: str) -> bool:
+    pattern = r"(@[a-z-]+/)"
+    if re.fullmatch(pattern, scope):
+        return True
+    else:
+        logger.error("only allows lower cases(a-z) and hyphen(-) as the scope name")
+        exit(1)
+
+
 def update_config(field: str, value: str, scope: str):
+    validate_scope(scope)
     kukirc: Dict[str, RegistryCfg] = load_config()
     if scope in kukirc:
         kukirc.setdefault(scope, ())

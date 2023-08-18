@@ -71,6 +71,7 @@ def add_user(user: str, password: str, email: str, scope: str, registry: str):
 
 
 def login(user: str, password: str, scope: str, registry: str):
+    config_util.validate_scope(scope)
     user_url = registry + "-/user/org.couchdb.user:"
 
     basic_auth = HTTPBasicAuth(user, password)
