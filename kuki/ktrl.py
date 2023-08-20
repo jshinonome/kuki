@@ -1,5 +1,6 @@
 import argparse
 import logging
+import sys
 
 from . import ktrl_util
 from .package_util import package_config_path
@@ -84,5 +85,7 @@ def ktrl(args: argparse.Namespace):
 
 def main():
     args = parser.parse_args()
-    # print help if no --config, --list or --start
-    ktrl(args)
+    try:
+        ktrl(args)
+    except KeyboardInterrupt:
+        sys.exit(0)

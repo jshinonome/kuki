@@ -127,10 +127,12 @@ import {"./path.q"};
   statusByFile:exec all status=`passed by file from .kest.testResults;
   numFiles:count statusByFile;
   numPassedFiles:`long$sum statusByFile;
-  -1 "test Files: ",(string numFiles)," total, ",(string numPassedFiles)," passed";
+  -1 "test Files: ",(string numFiles)," total, ",(string numPassedFiles)," passed",
+    $[0<numFiles-numPassedFiles;", ",.kest.getMsgByStyle[`red;(string numFiles-numPassedFiles)," failed"];""];
   numTests:count .kest.testResults;
   numPassedTests:`long$sum exec status=`passed from .kest.testResults;
-  -1 "tests:      ",(string numTests)," total, ",(string numPassedTests)," passed";
+  -1 "tests:      ",(string numTests)," total, ",(string numPassedTests)," passed",
+    $[0<numTests-numPassedTests;", ",.kest.getMsgByStyle[`red;(string numTests-numPassedTests)," failed"];""];
   time:`long$(.z.P-.kest.startTime)%1e6;
   -1 "time:       ",(string time),"ms";
   if[not null .cli.args`testOutputFile;

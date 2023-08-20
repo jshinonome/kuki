@@ -52,4 +52,7 @@ def load_kest():
 
 
 def main():
-    kest(sys.argv[1:])
+    try:
+        kest(sys.argv[1:])
+    except KeyboardInterrupt:
+        sys.exit(0)
