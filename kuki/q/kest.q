@@ -219,7 +219,7 @@ import {"./path.q"};
   (`lightBlue;  "\033[1;34m");
   (`cyan;       "\033[0;36m");
   (`lightCyan;  "\033[1;36m");
-  (`yellow;     "\033[1;33m");
+  (`yellow;     "\033[0;33m");
   (`purple;     "\033[0;35m");
   (`pink;       "\033[1;35m");
   (`green;      "\033[0;32m");

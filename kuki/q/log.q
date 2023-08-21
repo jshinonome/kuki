@@ -11,13 +11,21 @@
  };
 
 .log.plain:{[handle;level;msgs]
-  msg:$[0h=type msgs;" " sv .log.toString each msgs;.log.toString msgs];
-  (neg handle) (string value .log.temporalShortcut)," ",level," ",msg;
+  msg:(string value .log.temporalShortcut)," ",level," ";
+  msg,:$[0h=type msgs;" " sv .log.toString each msgs;.log.toString msgs];
+  (neg handle) msg;
  };
+
+.log.style:(!) . flip(
+  ("DEBUG"; "\033[0;36mDEBUG\033[0;0m");
+  ("INFO "; "\033[0;32mINFO \033[0;0m");
+  ("WARN "; "\033[0;35mWARN \033[0;0m");
+  ("ERROR"; "\033[0;31mERROR\033[0;0m")
+ );
 
 .log.log:{[level]
   handle:$[level~"ERROR";.log.errHandle;.log.stdHandle];
-  :.log[.log.formatType][handle;level];
+  .log[.log.formatType][handle;$[.log.formatType=`json;(::);.log.style]level;]
  };
 
 .log.Debug:{};
@@ -33,7 +41,6 @@
   .log.Info:.log.log["INFO "];
   .log.Warning:.log.log["WARN "];
   .log.Error:.log.log["ERROR"];
-  .log.SetLogLevel .log.level;
  };
 
 .log.SetStdLogFile:{[filepath]
@@ -41,12 +48,14 @@
   .log.stdHandle:h;
   .log.errHandle:h;
   .log.refreshLogMethod[];
+  .log.SetLogLevel .log.level;
  };
 
 .log.SetErrLogFile:{[filepath]
   h:hopen hsym filepath;
   .log.errHandle:h;
   .log.refreshLogMethod[];
+  .log.SetLogLevel .log.level;
  };
 
 .log.SetConsoleSize:{[consoleSize]
@@ -66,6 +75,7 @@
   if[not formatType in formatTypes;'"Only support log format types: ", -3!formatTypes];
   .log.formatType:formatType;
   .log.refreshLogMethod[];
+  .log.SetLogLevel .log.level;
  };
 
 .log.SetJsonHeader:{[header]
@@ -78,6 +88,7 @@
   i:levels?level;
   / if log level is invalid, set level to debug
   .log.level:$[i=count levels;`Debug;level];
+  .log.refreshLogMethod[];
   @[`.log;levels@til levels? .log.level;:;{}];
  };
 
