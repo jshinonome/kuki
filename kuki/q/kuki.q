@@ -25,12 +25,15 @@
   .kuki.importedPkgs,:realPath;
  };
 
-.kuki.path:{x,:$[x like "/src";"";"/src"]}getenv`PWD;
+.kuki.path:{x,$[x like "*/src";"";"/src"]}getenv`PWD;
 
 .kuki.SetPath:{.kuki.path:x};
 
 .kuki.importLocal:{[path;pkg]
-  if[0=count path;path:.kuki.path];
+  if[0=count path;
+    -1 "\033[1;33minteractive mode, use PWD '",.kuki.path,"' for relative import\033[0;0m";
+    path:.kuki.path
+  ];
   pkgPath: .kuki.joinPath[path;pkg];
   .kuki.importPkg pkgPath
  };
