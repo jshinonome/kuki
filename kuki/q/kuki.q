@@ -1,4 +1,4 @@
-.kuki.importedModules:("";"");
+.kuki.importedPkgs:("";"");
 
 .kuki.appendSlash:{$[not "/"=last x;:x,"/";x]};
 
@@ -12,54 +12,61 @@
 .kuki.rootDir:{kukiRoot:getenv`KUKIPATH;$[count kukiRoot;kukiRoot;.kuki.joinPath[getenv`HOME;("kuki")]]}[];
 
 .kuki.getRealPath:{[path]
-  first @[system;"realpath ", path;{'y, " - No such file or directory"}[;path]]
+  first @[system;"realpath ", path;{'y, " No such file or directory"}[;path]]
  };
 
-.kuki.importModule:{[modulePath]
-  realPath: .kuki.getRealPath modulePath;
-  if[realPath in .kuki.importedModules;:(::)]
+.kuki.importPkg:{[pkgPath]
+  realPath: .kuki.getRealPath pkgPath;
+  if[realPath in .kuki.importedPkgs;:(::)]
+  if[not realPath like "*kuki/q/*";
+    -1"\033[0;32mloading ",realPath,"\033[0;0m";
+  ];
   system"l ", realPath;
-  .kuki.importedModules,:realPath;
+  .kuki.importedPkgs,:realPath;
  };
 
 .kuki.path:{x,:$[x like "/src";"";"/src"]}getenv`PWD;
 
 .kuki.SetPath:{.kuki.path:x};
 
-.kuki.importLocal:{[path;module]
+.kuki.importLocal:{[path;pkg]
   if[0=count path;path:.kuki.path];
-  modulePath: .kuki.joinPath[path;module];
-  .kuki.importModule modulePath
+  pkgPath: .kuki.joinPath[path;pkg];
+  .kuki.importPkg pkgPath
  };
 
 .kuki.index:.j.k (,/) @[read0;`:kuki_index.json;{"{}"}];
 
-.kuki.importGlobal:{[module]
-  subPaths: "/" vs module;
-  moduleName: `$first subPaths;
-  n:$[module like "@*";2;1];
-  moduleName:`$ "/" sv n#subPaths;
-  if[not moduleName in key .kuki.index; '"Cannot find module named - ", string moduleName];
+.kuki.importGlobal:{[pkg]
+  subPaths: "/" vs pkg;
+  pkgName: `$first subPaths;
+  n:$[pkg like "@*";2;1];
+  pkgName:`$ "/" sv n#subPaths;
+  if[not pkgName in key .kuki.index;
+    '"cannot find pkg named - ",(string pkgName)
+  ];
   path: .kuki.joinPath[.kuki.rootDir;
     (n#subPaths),
-    (.kuki.index[moduleName;`version];"src"),
+    (.kuki.index[pkgName;`version];"src"),
     n _ subPaths
   ];
-  .kuki.importModule path
+  .kuki.importPkg path
  };
 
-// global import - import {"moduleName/[folder/]/module"}
-// local import - import {"./[folder/]/module"}
-// module doesn't include .q
-import:{[moduleFunc]
-  if[100h<>type moduleFunc;'"requires format {\"module\"} for import"];
-  module: moduleFunc[];
-  path: first -3#value moduleFunc;
-  path: 1_string first ` vs hsym `$path;
-  errHandler:{'"fail to import ",x," at ",y," - ", z}[module;path];
-  $[any module like/: ("./*";"../*");
-      .[.kuki.importLocal;(path;module);errHandler];
-      @[.kuki.importGlobal;module;errHandler]
+// global import - import {"pkgName/[folder/]/pkg"}
+// local import - import {"./[folder/]/pkg"}
+// pkg doesn't include .q
+import:{[pkgFunc]
+  if[100h<>type pkgFunc;'"requires format {\"pkg\"} for import"];
+  pkg: pkgFunc[];
+  filepath: first -3#value pkgFunc;
+  path: 1_string first ` vs hsym `$filepath;
+  errHandler:{
+    -2"\033[0;31m- fail to import ",x," at ",y,"\033[0;0m";
+    'z}[pkg;filepath];
+  $[any pkg like/: ("./*";"../*");
+      .[.kuki.importLocal;(path;pkg);errHandler];
+      @[.kuki.importGlobal;pkg;errHandler]
   ]
  };
 
@@ -73,5 +80,9 @@ import {"./",.kuki.kScriptType,".q"};
 
 // trigger .kest.run here so that error is not trapped in importing
 if[.kuki.kScriptType like "kest";
-  .kest.run[hsym .cli.args`testRoot];
+  .kest.start[hsym .cli.args`testRoot];
+ ];
+
+if[.kuki.kScriptType like "ktrl";
+  .ktrl.start[];
  ];

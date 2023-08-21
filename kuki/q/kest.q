@@ -233,7 +233,7 @@ import {"./path.q"};
  };
 
 / loop test folder and find all filename.test.q files
-.kest.run:{[root]
+.kest.start:{[root]
   .kest.startTime:.z.P;
   files:exec file from .path.Glob[root;"*test.q"];
   if[not null .cli.args`testFile;
