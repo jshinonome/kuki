@@ -391,8 +391,15 @@ def get_metadata(name: str) -> Metadata:
             headers=headers,
             verify=False,
         )
-        metadata = res.json()
-        if res.status_code != 200:
+        if res.status_code == 405:
+            res = requests.get(registry + scope + pkg_name, headers=headers, verify=False)
+            res_json = res.json()
+            if version not in res_json["versions"]:
+                raise Exception("'{}@{}' not found".format(pkg_name, version))
+            metadata = res_json["versions"][version]
+        elif res.status_code == 200:
+            metadata = res.json()
+        else:
             raise Exception(metadata.get("error"))
     return metadata
 
@@ -437,6 +444,18 @@ def download_package(metadata: Metadata) -> str:
         else:
             raise Exception("empty tar file - " + tar_name)
     return cached_filepath
+
+
+def install_global_entry(pkgs: List[str]):
+    try:
+        for pkg in pkgs:
+            if pkg.startswith("."):
+                install_local_package(pkg, False, True)
+            else:
+                install_package(pkg, False, True)
+            dump_global_index()
+    except Exception as e:
+        logger.error("failed to install packages with error: {}".format(e))
 
 
 def install_entry(pkgs: List[str]):
