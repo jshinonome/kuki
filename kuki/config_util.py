@@ -1,3 +1,4 @@
+import getpass
 import json
 import logging
 import os
@@ -42,7 +43,7 @@ def get_reg_cfg(scope=DEFAULT_SCOPE) -> (str, str, str):
     return (
         reg if reg.endswith("/") else reg + "/",
         reg_cfg.get("token", ""),
-        reg_cfg.get("user", os.getlogin()),
+        reg_cfg.get("user", getpass.getuser()),
     )
 
 
