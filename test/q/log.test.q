@@ -1,3 +1,5 @@
+import{"../../kuki/q/log.q"};
+
 .kest.BeforeAll{
   .bak.log:.log;
  };

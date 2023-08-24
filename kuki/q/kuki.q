@@ -76,6 +76,7 @@ import:{[pkgFunc]
 import {"./log.q"};
 import {"./cli.q"};
 import {"./path.q"};
+import {"./timer.q"};
 
 .kuki.kScriptType:first .Q.opt[.z.x][`kScriptType];
 

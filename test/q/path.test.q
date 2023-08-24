@@ -1,3 +1,5 @@
+import{"../../kuki/q/path.q"};
+
 .kest.Test["is dir";{
   .path.IsDir .kest.startupPath
  }];
