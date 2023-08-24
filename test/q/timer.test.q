@@ -6,16 +6,19 @@ import {"../../kuki/q/timer.q"};
 
 .kest.Test["execute 1 time";{
   f:{.tmp.n:1};
-  .timer.AddJobs[(f;());.z.P;.z.P+100*.timer.Milliseconds;50*.timer.Milliseconds;"exec 1 time"];
+  description:"exec 1 time";
+  .timer.AddJobs[(f;());.z.P;.z.P+100*.timer.Milliseconds;50*.timer.Milliseconds;description];
   .timer.tick[];
-  .kest.Match[1;.tmp.n]
+  job:first .timer.GetJobsByDescription[description];
+  .kest.Match[1;.tmp.n];
+  .kest.Match[1b;job`isActive]
  }];
 
 .kest.Test["execute at least 1 time and deactivate";{
   f:{.tmp.n:1};
   description:"exec 1 at least time";
   .timer.AddJobs[(f;());.z.P;.z.P;50*.timer.Milliseconds;description];
-  system"sleep 0.01";
+  system"sleep 0.001";
   .timer.tick[];
   .kest.Match[1;.tmp.n];
   .kest.Match[0b;first exec isActive from .timer.GetJobsByDescription[description]]
