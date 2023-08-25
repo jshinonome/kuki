@@ -186,7 +186,7 @@ import {"./path.q"};
       testFunction[];
       .Q.trp[testFunction;();
         {
-          if[x like "*Mismatch*";:x];
+          if[x like "*Mismatch*";-2 .kest.getMsgByStyle[`red;.Q.sbt 2#3_y];:x];
           errMsg:"\n" sv ("'",z,"' failed with error - ",x;"  backtrace:";.Q.sbt y);
           -2 .kest.getMsgByStyle[`red;errMsg];
           errMsg

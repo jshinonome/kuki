@@ -29,11 +29,11 @@ import {"../../kuki/q/timer.q"};
   description:"schedule next time";
   .timer.AddJobs[(f;());.z.P;.z.P+2*.timer.Second;.timer.Second;description];
   job:first .timer.GetJobsByDescription[description];
-  .kest.Match[1b;job[`nextTime] within .z.P+(0D;.timer.Second)];
+  .kest.Match[1b;job[`nextTime] within .z.P+(900*.timer.Milliseconds;.timer.Second)];
   .timer.tick[];
   job:first .timer.GetJobsByDescription[description];
-  .kest.Match[1b;job[`nextTime] within .z.P+(0D;.timer.Second)];
-  .kest.Match[1b;job[`lastTime] within .z.P-(.timer.Second;0D)];
+  .kest.Match[1b;job[`nextTime] within .z.P+(900*.timer.Milliseconds;.timer.Second)];
+  .kest.Match[1b;job[`lastTime] within .z.P-(100*.timer.Milliseconds;0D)];
   .kest.Match[3;.tmp.n];
   .kest.Match[1b;job`isActive]
  }];
