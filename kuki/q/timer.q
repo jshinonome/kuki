@@ -9,13 +9,19 @@
 .timer.Day:0D01:00:00;
 
 .timer.jobs:1!enlist
-  `id`function`startTime`endTime`interval`lastTime`nextTime`isActive`description`upd!
+  `id`function`startTime`endTime`interval`lastTime`nextTime`isActive`description`updTime!
   (0; (::);    0Np;  0Np;0Nn;     0Np; 0Np; 0b;      "";         0Np);
 
-.timer.AddJobs:{[function;startTime;endTime;interval;description]
+.timer.AddJob:{[functionCall;startTime;endTime;interval;description]
   `.timer.jobs upsert (1+max key .timer.jobs),
-    `function`startTime`endTime`interval`nextTime`isActive`description`upd!
-    (function;startTime;endTime;interval;startTime+interval;1b;description;.z.P)
+    `function`startTime`endTime`interval`nextTime`isActive`description`updTime!
+    (functionCall;startTime;endTime;interval;startTime;1b;description;.z.P)
+ };
+
+.timer.AddJobAtTime:{[functionCall;startTime;description]
+  `.timer.jobs upsert (1+max key .timer.jobs),
+    `function`startTime`endTime`interval`nextTime`isActive`description`updTime!
+    (functionCall;startTime;startTime;0D;startTime;1b;description;.z.P)
  };
 
 .timer.GetJobs:{
@@ -43,7 +49,7 @@
  };
 
 .timer.tick:{
-  jobs:select from .timer.jobs where isActive,(.z.P<endTime)|null lastTime;
+  jobs:select from .timer.jobs where isActive,.z.P>nextTime;
   upsert[`.timer.jobs;select id,lastTime:.z.P,nextTime:.z.P+interval from jobs where endTime>=.z.P+interval];
   upsert[`.timer.jobs;select id,lastTime:.z.P,isActive:0b from jobs where endTime<.z.P+interval];
   value each exec function from jobs;
