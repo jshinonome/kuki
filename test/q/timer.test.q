@@ -50,3 +50,13 @@ import {"../../kuki/q/timer.q"};
   .kest.Match[4;.tmp.n];
   .kest.Match[1b;job`isActive]
  }];
+
+.kest.Test["clear deactivate job";{
+  description:"get cleared";
+  .timer.AddJob[".tmp.n:5";.z.P;.z.P;50*.timer.Milliseconds;description];
+  system"sleep 0.001";
+  .timer.tick[];
+  .kest.Match[5;.tmp.n];
+  .timer.Clear[];
+  .kest.Match[0;count .timer.GetJobsByDescription[description]]
+ }];

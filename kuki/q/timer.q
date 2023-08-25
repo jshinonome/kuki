@@ -62,3 +62,7 @@
 .timer.Stop:{
   system"x .z.ts";
  };
+
+.timer.Clear:{
+  delete from `.timer.jobs where not isActive;
+ };
