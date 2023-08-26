@@ -40,7 +40,8 @@
   skipHelp:$[null skipHelp;0b;skipHelp];
   if[not[skipHelp] & `help in key args;.cli.printHelp[];exit 0];
   if[not[skipHelp] &`pHelp in key args;.cli.printProcessHelp[];exit 0];
-  :.cli.args:args;
+  .cli.args:args;
+  :.cli.Args:((key args) where (key args) like "k[A-Z]*")_args;
  };
 
 .cli.printHelp:{

@@ -47,6 +47,8 @@ PROFILE_DEFAULT = {
     "binaryType": "q",
     "binaryHome": "",
     "licenseDir": "",
+    # loaded as .ktrl.hostAlias
+    "hostAlias": "",
 }
 
 

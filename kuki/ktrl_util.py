@@ -103,13 +103,13 @@ def start(profile_name: str, process_name: str, globalMode: False):
     if profile_path.exists():
         profile_json: dict = json.loads(profile_path.read_text())
     else:
-        logger.error("Not such file - {}".format(profile_path))
+        logger.error("No such file - {}".format(profile_path))
         return
 
     if process_path.exists():
         process_json: dict = json.loads(process_path.read_text())
     else:
-        logger.error("Not such file - {}".format(process_path))
+        logger.error("No such file - {}".format(process_path))
         return
 
     if "port" not in process_json:
@@ -122,7 +122,7 @@ def start(profile_name: str, process_name: str, globalMode: False):
             process_json.get("version"),
         )
         if not package_path.exists():
-            logger.error("Not such folder - {}".format(package_path))
+            logger.error("No such folder - {}".format(package_path))
             return
         os.chdir(package_path)
     else:
@@ -140,6 +140,8 @@ def start(profile_name: str, process_name: str, globalMode: False):
     # generate run command
     options = (
         ["-kScriptType", "ktrl"]
+        + ["-kProcess", process_name]
+        + ["-kHostAlias", profile_json.get("hostAlias", "''")]
         + ["-file", str(file_path)]
         + ["-dbPath", process_json.get("dbPath", [])]
         + process_json.get("args")

@@ -43,7 +43,7 @@ import {"./path.q"};
  };
 
 .kest.MatchPattern:{[pattern;actual]
-  .kest.match[pattern;actual;""]
+  .kest.matchPattern[pattern;actual;""]
  };
 
 .kest.ToThrow:{[functionCall;errorMsg]
