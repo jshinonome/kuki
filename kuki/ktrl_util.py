@@ -112,6 +112,9 @@ def start(profile_name: str, process_name: str, globalMode: False):
         logger.error("Not such file - {}".format(process_path))
         return
 
+    if "port" not in process_json:
+        process_json.setdefault("port", "0W")
+
     if globalMode:
         package_path = Path.joinpath(
             config_util.global_kuki_root,

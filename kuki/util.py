@@ -26,7 +26,7 @@ PROCESS_DEFAULT = {
     "garbage_collection": "deferred",
     "memory_limit": 0,
     "offset_time": 0,
-    "port": 31800,
+    "port": "0W",
     "precision": 7,
     "quiet": False,
     "threads": 0,
