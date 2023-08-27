@@ -28,7 +28,7 @@ import{"../../kuki/q/path.q"};
 
 .kest.Test["fail to start";{
   label:.ktrl.Spawn[`q4.0;`nonExisting;0b;1b];
-  .kest.Assert[null .ktrl.GetPid label]
+  .kest.Assert[not .ktrl.IsRunning label]
  }];
 
 .kest.Test["wait and exit 0";{
