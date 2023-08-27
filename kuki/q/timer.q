@@ -24,6 +24,13 @@
     (functionCall;startTime;startTime;0D;startTime;1b;description;.z.P)
  };
 
+.timer.AddJobAfter:{[functionCall;interval;description]
+  time:.z.P+interval;
+  `.timer.jobs upsert (1+max key .timer.jobs),
+    `function`startTime`endTime`interval`nextTime`isActive`description`updTime!
+    (functionCall;time;time;0D;time;1b;description;.z.P)
+ };
+
 .timer.GetJobs:{
   .timer.jobs
  };

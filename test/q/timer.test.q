@@ -11,7 +11,7 @@ import {"../../kuki/q/timer.q"};
   .timer.tick[];
   job:first .timer.GetJobsByDescription[description];
   .kest.Match[1;.tmp.n];
-  .kest.Match[1b;job`isActive]
+  .kest.Assert[job`isActive]
  }];
 
 .kest.Test["execute at least 1 time and deactivate";{
@@ -20,7 +20,7 @@ import {"../../kuki/q/timer.q"};
   system"sleep 0.001";
   .timer.tick[];
   .kest.Match[2;.tmp.n];
-  .kest.Match[0b;first exec isActive from .timer.GetJobsByDescription[description]]
+  .kest.Assert[not first exec isActive from .timer.GetJobsByDescription[description]]
  }];
 
 .kest.Test["execute at least 1 time and deactivate by adding job at time";{
@@ -33,7 +33,7 @@ import {"../../kuki/q/timer.q"};
   system"sleep 0.001";
   .timer.tick[];
   .kest.Match[3;.tmp.n];
-  .kest.Match[0b;first exec isActive from .timer.GetJobsByDescription[description]]
+  .kest.Assert[not first exec isActive from .timer.GetJobsByDescription[description]]
  }];
 
 
@@ -42,13 +42,13 @@ import {"../../kuki/q/timer.q"};
   description:"schedule next time";
   .timer.AddJob[(f;());.z.P;.z.P+2*.timer.Second;.timer.Second;description];
   job:first .timer.GetJobsByDescription[description];
-  .kest.Match[1b;job[`nextTime] within .z.P-(100*.timer.Milliseconds;0D)];
+  .kest.Assert[job[`nextTime] within .z.P-(100*.timer.Milliseconds;0D)];
   .timer.tick[];
   job:first .timer.GetJobsByDescription[description];
-  .kest.Match[1b;job[`nextTime] within .z.P+(900*.timer.Milliseconds;.timer.Second)];
-  .kest.Match[1b;job[`lastTime] within .z.P-(100*.timer.Milliseconds;0D)];
+  .kest.Assert[job[`nextTime] within .z.P+(900*.timer.Milliseconds;.timer.Second)];
+  .kest.Assert[job[`lastTime] within .z.P-(100*.timer.Milliseconds;0D)];
   .kest.Match[4;.tmp.n];
-  .kest.Match[1b;job`isActive]
+  .kest.Assert[job`isActive]
  }];
 
 .kest.Test["clear deactivate job";{
@@ -59,4 +59,17 @@ import {"../../kuki/q/timer.q"};
   .kest.Match[5;.tmp.n];
   .timer.Clear[];
   .kest.Match[0;count .timer.GetJobsByDescription[description]]
+ }];
+
+.kest.Test["execute after 1 ms";{
+  f:{.tmp.n:6};
+  description:"execute after 1 ms";
+  .timer.AddJobAfter[(f;());1*.timer.Milliseconds;description];
+  .timer.tick[];
+  // jot is started yet
+  .kest.ToThrow[(value;`.tmp.n);".tmp.n"];
+  system"sleep 0.001";
+  .timer.tick[];
+  .kest.Match[6;.tmp.n];
+  .kest.Assert[not first exec isActive from .timer.GetJobsByDescription[description]]
  }];
