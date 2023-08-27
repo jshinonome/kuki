@@ -1,0 +1,21 @@
+{
+  "lodash@1.0.0": {
+    "name": "lodash",
+    "version": "1.0.0",
+    "description": "a utility library",
+    "author": {
+      "name": "Jo Shinonome"
+    },
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/jshinonome/lodash"
+    },
+    "type": "q",
+    "dependencies": {},
+    "_id": "lodash@1.0.0",
+    "dist": {
+      "shasum": "419ab78a306101d812e5ad72c1d08c1ef0ef7428",
+      "tarball": "https://www.kuki.ninja/lodash/-/lodash-1.0.0.tgz"
+    }
+  }
+}

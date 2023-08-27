@@ -91,7 +91,7 @@ def list_config(type: str, globalMode: False):
         print(file)
 
 
-def start(profile_name: str, process_name: str, globalMode: False):
+def start(profile_name: str, process_name: str, globalMode: False, label=""):
     profile_path = Path.joinpath(
         global_profile_dir if globalMode else local_profile_dir,
         profile_name + ".profile.json",
@@ -104,13 +104,13 @@ def start(profile_name: str, process_name: str, globalMode: False):
         profile_json: dict = json.loads(profile_path.read_text())
     else:
         logger.error("No such file - {}".format(profile_path))
-        return
+        exit(1)
 
     if process_path.exists():
         process_json: dict = json.loads(process_path.read_text())
     else:
         logger.error("No such file - {}".format(process_path))
-        return
+        exit(1)
 
     if "port" not in process_json:
         process_json.setdefault("port", "0W")
@@ -147,11 +147,14 @@ def start(profile_name: str, process_name: str, globalMode: False):
         + process_json.get("args")
         + options
     )
+    if label:
+        options += ["-kLabel", "ktrl-" + label]
     cmd = generate_cmd(options, profile_json)
 
     logger.info("starting " + cmd)
 
     try:
-        subprocess.run(cmd, shell=True, check=True)
+        completeProcess = subprocess.run(cmd, shell=True, check=True)
+        exit(completeProcess.returncode)
     except subprocess.CalledProcessError:
         exit(1)

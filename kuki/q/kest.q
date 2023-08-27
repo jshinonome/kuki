@@ -68,6 +68,9 @@ import {"./path.q"};
   .kest.match[expect;actual;""]
  };
 
+.kest.Assert:{[assertion]
+  .kest.match[1b;assertion;""]
+ };
 
 .kest.getConsoleFormat:{.Q.S[system"c";0j;x]};
 
@@ -167,9 +170,13 @@ import {"./path.q"};
 .kest.runByFile:{
   startTime:.z.P;
   -1 .kest.getMsgByStyle[`yellow;"RUNS"]," ",string x;
+  afterAllFunction:.kest.tests[(x;"AfterAll");`function];
+  / clean up if abnormal exit
+  .z.exit:afterAllFunction;
   .kest.tests[(x;"BeforeAll");`function][];
   .kest.runByTest[x]each exec description from .kest.tests where file=x, testType=`Test;
-  .kest.tests[(x;"AfterAll");`function][];
+  afterAllFunction[];
+  system"x .z.exit";
   msg:" ",(string x)," (",(string `long$(.z.P-startTime)%1e6),"ms)\n";
   $[count select from .kest.testResults where file=x, status<>`passed;
       -2 .kest.getMsgByStyle[`red;"FAIL"],msg;

@@ -35,6 +35,12 @@ parser.add_argument(
     help="process name",
 )
 
+parser.add_argument(
+    "--label",
+    type=str,
+    help="internal usage, attached to process with a prefix 'ktrl-'",
+)
+
 group = parser.add_mutually_exclusive_group(required=True)
 
 group.add_argument(
@@ -78,7 +84,7 @@ def ktrl(args: argparse.Namespace):
 
     elif args.start:
         if args.profile and args.process:
-            ktrl_util.start(args.profile, args.process, args.globalMode)
+            ktrl_util.start(args.profile, args.process, args.globalMode, args.label)
         else:
             logger.error("requires --profile name and --process name")
 

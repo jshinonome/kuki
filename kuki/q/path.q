@@ -22,6 +22,8 @@
 
 .path.Remove:{hdel .path.ToHsym x};
 
+.path.MkDir:{if[not .path.Exists x;system"mkdir -p " .path.ToString x]};
+
 .path.Walk:{[path]
   path: .path.ToHsym path;
   files: paths where 0 > (type key@) each paths: .Q.dd[path] each paths: key path;
