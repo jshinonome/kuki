@@ -394,13 +394,18 @@ def get_metadata(name: str) -> Metadata:
         if res.status_code == 405:
             res = requests.get(registry + scope + pkg_name, headers=headers, verify=False)
             res_json = res.json()
+            if res.status_code == 403:
+                raise Exception("'{}@{}' forbidden".format(pkg_name, version))
             if version not in res_json["versions"]:
                 raise Exception("'{}@{}' not found".format(pkg_name, version))
             metadata = res_json["versions"][version]
         elif res.status_code == 200:
             metadata = res.json()
+        elif res.status_code == 404:
+            raise Exception("'{}@{}' not found".format(pkg_name, version))
         else:
-            raise Exception(metadata.get("error"))
+            logger.error("failed to get metadata, status code {}".format(res.status_code))
+            raise Exception(res.json().get("error"))
     return metadata
 
 
@@ -642,9 +647,13 @@ def install_dependencies():
     deps = kuki_json.get("dependencies", [])
     pending = []
     for name, version in deps.items():
-        if name in package_index and version == package_index[name]["version"]:
-            continue
         pkg_id = get_pkg_id({"name": name, "version": version})
+        if (
+            name in package_index
+            and version == package_index[name]["version"]
+            and pkg_id in global_index
+        ):
+            continue
         logger.warning("missing '{}'".format(pkg_id))
         pending.append(pkg_id)
     for pkg in pending:

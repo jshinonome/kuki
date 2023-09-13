@@ -187,7 +187,7 @@ def kuki(args: argparse.Namespace):
             registry_util.publish_entry()
         elif args.pack:
             registry_util.pack_entry()
-        elif isinstance(args.install, list):
+        elif args.install is not None:
             registry_util.install_entry(args.install)
         elif args.uninstall:
             registry_util.uninstall_entry(args.uninstall)
