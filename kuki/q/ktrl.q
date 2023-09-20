@@ -11,9 +11,9 @@
   .log.Info[("port";.ktrl.process.Instance)];
   .log.Info[("pid ";.z.i)];
   if[count .cli.args`dbPath;
-    system "l ", .cli.args`dbPath;
+    system"l ", .cli.args`dbPath;
   ];
   if[count .cli.args`file;
-    system "l ", .cli.args`file;
+    system"l ", .cli.args`file;
   ];
  };

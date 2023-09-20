@@ -451,25 +451,25 @@ def download_package(metadata: Metadata) -> str:
     return cached_filepath
 
 
-def install_global_entry(pkgs: List[str]):
+def install_global_entry(pkgs: List[str], force: bool):
     try:
         for pkg in pkgs:
             if pkg.startswith("."):
                 install_local_package(pkg, False, True)
             else:
-                install_package(pkg, False, True)
+                install_package(pkg, False, True, force)
             dump_global_index()
     except Exception as e:
         logger.error("failed to install packages with error: {}".format(e))
 
 
-def install_entry(pkgs: List[str]):
+def install_entry(pkgs: List[str], force: bool):
     try:
         for pkg in pkgs:
             if pkg.startswith("."):
                 install_local_package(pkg)
             else:
-                install_package(pkg, False)
+                install_package(pkg, False, False, force)
         install_dependencies()
         package_util.dump_kuki(kuki_json)
         package_util.dump_pkg_index(package_index)
@@ -478,7 +478,7 @@ def install_entry(pkgs: List[str]):
         logger.error("failed to install packages with error: {}".format(e))
 
 
-def install_package(pkg: str, skip_updating_pkg_index=True, globalMode=False):
+def install_package(pkg: str, skip_updating_pkg_index=True, globalMode=False, force=False):
     package_type = kuki_json.get("type", "q")
 
     if package_type == "k":
@@ -528,10 +528,10 @@ def install_package(pkg: str, skip_updating_pkg_index=True, globalMode=False):
         logger.info("updating dependencies")
         package_index[name] = metadata
 
-    if pkg_id in global_index and name in package_index:
+    if pkg_id in global_index and name in package_index and not force:
         logger.info("{} is already installed in kuki root".format(pkg_id))
         return
-    if pkg_id not in global_index:
+    if pkg_id not in global_index or force:
         # global index uses package id as keys, package index uses package name as keys
         global_index[pkg_id] = metadata
         for dep in [k + "@" + v for k, v in metadata.get("dependencies", {}).items()]:

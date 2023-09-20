@@ -1,3 +1,5 @@
+.kuki.debug:0b;
+
 .kuki.importedPkgs:("";"");
 
 .kuki.appendSlash:{$[not "/"=last x;:x,"/";x]};
@@ -65,11 +67,19 @@ import:{[pkgFunc]
   filepath: first -3#value pkgFunc;
   path: 1_string first ` vs hsym `$filepath;
   errHandler:{
-    -2"\033[0;31m- fail to import ",x," at ",y,"\033[0;0m";
-    'z}[pkg;filepath];
+    -2"\033[0;31m- fail to import ",x," at ",y;
+    -2"error - ",z,"\033[0;0m";
+    exit 1}[pkg;filepath];
+  if[.kuki.debug;
+    $[any pkg like/: ("./*";"../*");
+      .kuki.importLocal[path;pkg];
+      .kuki.importGlobal pkg
+    ];
+    :(::);
+  ];
   $[any pkg like/: ("./*";"../*");
-      .[.kuki.importLocal;(path;pkg);errHandler];
-      @[.kuki.importGlobal;pkg;errHandler]
+    .[.kuki.importLocal;(path;pkg);errHandler];
+    @[.kuki.importGlobal;pkg;errHandler]
   ]
  };
 
@@ -80,6 +90,7 @@ import {"./timer.q"};
 import {"./ktrlUtil.q"};
 
 .kuki.kScriptType:first .Q.opt[.z.x][`kScriptType];
+.kuki.debug:"-debug" in .z.x;
 
 import {"./",.kuki.kScriptType,".q"};
 

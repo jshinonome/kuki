@@ -91,17 +91,23 @@ def list_config(type: str, globalMode: False):
         print(file)
 
 
-def start(profile_name: str, process_name: str, globalMode: False, label=""):
+def start(profile_name: str, process_name: str, globalMode: False, label="", debug=False):
     profile_path = Path.joinpath(
-        global_profile_dir if globalMode else local_profile_dir,
+        local_profile_dir,
+        profile_name + ".profile.json",
+    )
+    global_profile_path = Path.joinpath(
+        global_profile_dir,
         profile_name + ".profile.json",
     )
     process_path = Path.joinpath(
         global_process_dir if globalMode else local_process_dir,
         process_name + ".process.json",
     )
-    if profile_path.exists():
+    if profile_path.exists() and not globalMode:
         profile_json: dict = json.loads(profile_path.read_text())
+    elif global_profile_path.exists():
+        profile_json: dict = json.loads(global_profile_path.read_text())
     else:
         logger.error("No such file - {}".format(profile_path))
         exit(1)
@@ -149,6 +155,9 @@ def start(profile_name: str, process_name: str, globalMode: False, label=""):
     )
     if label:
         options += ["-kLabel", "ktrl-" + label]
+    if debug:
+        options += ["-debug"]
+
     cmd = generate_cmd(options, profile_json)
 
     logger.info("starting " + cmd)

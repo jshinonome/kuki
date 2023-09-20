@@ -41,6 +41,13 @@ parser.add_argument(
     help="internal usage, attached to process with a prefix 'ktrl-'",
 )
 
+parser.add_argument(
+    "--debug",
+    action="store_true",
+    default=False,
+    help="start in debug mode",
+)
+
 group = parser.add_mutually_exclusive_group(required=True)
 
 group.add_argument(
@@ -84,7 +91,7 @@ def ktrl(args: argparse.Namespace):
 
     elif args.start:
         if args.profile and args.process:
-            ktrl_util.start(args.profile, args.process, args.globalMode, args.label)
+            ktrl_util.start(args.profile, args.process, args.globalMode, args.label, args.debug)
         else:
             logger.error("requires --profile name and --process name")
 

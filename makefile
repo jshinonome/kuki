@@ -4,9 +4,14 @@
 PYTHON3="python"
 PIP3="pip"
 
-default: clean compile
-all: clean compile install
-upload: clean sdist
+default:kest clean compile
+all:kest clean compile install
+upload:kest clean sdist
+
+kest:
+	@echo '[make test]'
+	@pytest
+	@kest
 
 clean:
 	@echo '[make clean]'

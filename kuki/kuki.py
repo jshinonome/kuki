@@ -129,6 +129,13 @@ parser.add_argument(
     help="the kuki package registry",
 )
 
+parser.add_argument(
+    "--force",
+    action="store_true",
+    default=False,
+    help="force reinstall",
+)
+
 
 def kuki(args: argparse.Namespace):
     scope: str = args.scope
@@ -177,7 +184,7 @@ def kuki(args: argparse.Namespace):
     else:
         if args.globalMode:
             if isinstance(args.install, list):
-                registry_util.install_global_entry(args.install)
+                registry_util.install_global_entry(args.install, args.force)
         elif not package_util.exits():
             logger.error("kuki.json not found, use 'kuki --init' to init the package first")
             return
@@ -188,7 +195,7 @@ def kuki(args: argparse.Namespace):
         elif args.pack:
             registry_util.pack_entry()
         elif args.install is not None:
-            registry_util.install_entry(args.install)
+            registry_util.install_entry(args.install, args.force)
         elif args.uninstall:
             registry_util.uninstall_entry(args.uninstall)
 
