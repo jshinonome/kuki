@@ -91,7 +91,9 @@ def list_config(type: str, globalMode: False):
         print(file)
 
 
-def start(profile_name: str, process_name: str, globalMode: False, label="", debug=False):
+def start(
+    profile_name: str, process_name: str, globalMode: False, label="", debug=False, kargs=[]
+):
     profile_path = Path.joinpath(
         local_profile_dir,
         profile_name + ".profile.json",
@@ -150,7 +152,7 @@ def start(profile_name: str, process_name: str, globalMode: False, label="", deb
         + ["-kHostAlias", profile_json.get("hostAlias", "''")]
         + ["-file", str(file_path)]
         + ["-dbPath", process_json.get("dbPath", [])]
-        + process_json.get("args")
+        + (kargs.split() if kargs else process_json.get("args"))
         + options
     )
     if label:

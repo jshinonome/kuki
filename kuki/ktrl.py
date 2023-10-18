@@ -48,6 +48,12 @@ parser.add_argument(
     help="start in debug mode",
 )
 
+parser.add_argument(
+    "--kargs",
+    type=str,
+    help="process overwrite arguments",
+)
+
 group = parser.add_mutually_exclusive_group(required=True)
 
 group.add_argument(
@@ -91,7 +97,9 @@ def ktrl(args: argparse.Namespace):
 
     elif args.start:
         if args.profile and args.process:
-            ktrl_util.start(args.profile, args.process, args.globalMode, args.label, args.debug)
+            ktrl_util.start(
+                args.profile, args.process, args.globalMode, args.label, args.debug, args.kargs
+            )
         else:
             logger.error("requires --profile name and --process name")
 
