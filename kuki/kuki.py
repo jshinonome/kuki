@@ -3,8 +3,10 @@ import getpass
 import logging
 import sys
 import webbrowser
+from pathlib import Path
 
 from . import config_util, package_util, registry_util
+from . import version as kuki_version
 
 FORMAT = "%(asctime)s %(levelname)s: %(message)s"
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
@@ -13,7 +15,9 @@ logging.basicConfig(level=logging.INFO, format=FORMAT, datefmt=DATE_FORMAT)
 
 logger = logging.getLogger()
 
-parser = argparse.ArgumentParser(description="K Ultimate pacKage Installer CLI")
+parser = argparse.ArgumentParser(
+    description="K Ultimate pacKage Installer CLI ({})".format(kuki_version.__version__)
+)
 
 group = parser.add_mutually_exclusive_group()
 
@@ -105,6 +109,12 @@ group.add_argument(
     help="roll up version(patch, minor, major)",
 )
 
+group.add_argument(
+    "-q",
+    action="store_true",
+    default=False,
+    help="print q framework source folder",
+)
 
 parser.add_argument(
     "-g",
@@ -181,6 +191,8 @@ def kuki(args: argparse.Namespace):
         registry_util.download_entry(args.download)
     elif args.unpublish:
         registry_util.unpublish_package(args.unpublish)
+    elif args.q:
+        print(Path.joinpath(Path(__file__).parent, "q"))
     else:
         if args.globalMode:
             if isinstance(args.install, list):

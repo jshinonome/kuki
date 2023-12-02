@@ -28,4 +28,4 @@ install:
 sdist:
 	@echo '[make upload]'
 	@python setup.py sdist
-	@twine upload dist/*.gz
+	@twine upload dist/*.gz --verbose
