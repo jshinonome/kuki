@@ -1,11 +1,18 @@
+import atexit
 import json
 import logging
 import os
+import signal
 import subprocess
 from pathlib import Path
 
 from . import config_util
-from .util import PROCESS_DEFAULT, PROFILE_DEFAULT, generate_cmd, generate_process_options
+from .util import (
+    PROCESS_DEFAULT,
+    PROFILE_DEFAULT,
+    generate_cmd,
+    generate_process_options,
+)
 
 logger = logging.getLogger()
 
@@ -165,7 +172,19 @@ def start(
     logger.info("starting " + cmd)
 
     try:
-        completeProcess = subprocess.run(cmd, shell=True, check=True)
-        exit(completeProcess.returncode)
+        p = subprocess.Popen(cmd, shell=True)
+        atexit.register(p.terminate)
+        signal.signal(
+            signal.SIGTERM,
+            terminate_handler,
+        )
+        p.communicate()
+        exit(p.returncode)
     except subprocess.CalledProcessError:
         exit(1)
+
+
+def terminate_handler(sig_num, _):
+    sig_name = signal.Signals(sig_num).name
+    logger.error("Signal hander called with signal %s (%d)", sig_name, sig_num)
+    exit(1)
