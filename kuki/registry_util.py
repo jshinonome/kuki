@@ -229,8 +229,12 @@ def publish_package():
             },
         },
     }
+
+    if kuki.get("publishConfig") and kuki.get("publishConfig").get("registry"):
+        registry = kuki.get("publishConfig").get("registry")
+
     res = requests.put(
-        registry + scope + pkg_name,
+        registry + scope.replace("/", "%2f") + pkg_name,
         data=json.dumps(data),
         headers=headers,
         verify=False,

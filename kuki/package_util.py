@@ -31,6 +31,7 @@ class Kuki(TypedDict):
     repository: Repository
     type: str
     dependencies: Dict[str, str]
+    publishConfig: Dict[str, str]
 
 
 def generate_json(name: str, description="", author="", repository="", package_type="q"):
