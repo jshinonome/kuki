@@ -395,18 +395,16 @@ def get_metadata(name: str) -> Metadata:
             headers=headers,
             verify=False,
         )
-        if res.status_code == 405:
+        if res.status_code == [405, 404]:
             res = requests.get(registry + scope + pkg_name, headers=headers, verify=False)
             res_json = res.json()
             if res.status_code == 403:
-                raise Exception("'{}@{}' forbidden".format(pkg_name, version))
+                raise Exception("'{}{}@{}' forbidden".format(scope, pkg_name, version))
             if version not in res_json["versions"]:
-                raise Exception("'{}@{}' not found".format(pkg_name, version))
+                raise Exception("'{}{}@{}' not found".format(scope, pkg_name, version))
             metadata = res_json["versions"][version]
         elif res.status_code == 200:
             metadata = res.json()
-        elif res.status_code == 404:
-            raise Exception("'{}@{}' not found".format(pkg_name, version))
         else:
             logger.error("failed to get metadata, status code {}".format(res.status_code))
             raise Exception(res.json().get("error"))
