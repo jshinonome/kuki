@@ -46,7 +46,9 @@
   jobs: select from .timer.jobs where isActive, .z.P > nextTime;
   upsert[
     `.timer.jobs;
-    select id, lastTime: .z.P, nextTime: .z.P + interval from jobs where endTime >= .z.P + interval
+    select id, lastTime: .z.P, nextTime: .z.P + interval
+      from jobs
+      where endTime >= .z.P + interval
   ];
   upsert[
     `.timer.jobs;
