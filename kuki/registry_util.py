@@ -395,7 +395,7 @@ def get_metadata(name: str) -> Metadata:
             headers=headers,
             verify=False,
         )
-        if res.status_code == [405, 404]:
+        if res.status_code in [405, 404]:
             res = requests.get(registry + scope + pkg_name, headers=headers, verify=False)
             res_json = res.json()
             if res.status_code == 403:
@@ -432,7 +432,7 @@ def download_entry(name: str):
         logger.error("failed to download package '{}' with error: {}".format(name, e))
 
 
-def download_package(metadata: Metadata) -> str:
+def download_package(metadata: Metadata, force=False) -> str:
     scope, _, _ = parse_package_name(metadata["name"])
     _, token, _ = config_util.get_reg_cfg(scope)
 
@@ -440,7 +440,7 @@ def download_package(metadata: Metadata) -> str:
     tar_name = os.path.basename(tar_url)
     cached_filepath = get_cached_filepath(tar_name)
     logger.info("download package '{}'".format(tar_name))
-    if not is_cached(tar_name):
+    if not is_cached(tar_name) or force:
         headers = {
             "Authorization": "Bearer {}".format(token),
         }
@@ -538,7 +538,8 @@ def install_package(pkg: str, skip_updating_pkg_index=True, globalMode=False, fo
         global_index[pkg_id] = metadata
         for dep in [k + "@" + v for k, v in metadata.get("dependencies", {}).items()]:
             install_package(dep, True, globalMode)
-        extract_package(metadata)
+        extract_package(metadata, force)
+        logger.info("installed %s@%s", metadata["name"], metadata["version"])
 
 
 def install_local_package(
@@ -583,14 +584,19 @@ def install_local_package(
     logger.info("installed local package '{}'".format(local_pkg_tar))
 
 
-def extract_package(metadata: Metadata):
-    pkg_filepath = download_package(metadata)
+def extract_package(metadata: Metadata, force=False):
+    pkg_filepath = download_package(metadata, force)
     pkg_path = get_pkg_path(metadata["name"], metadata["version"])
+    latest_path = get_pkg_path(metadata["name"], "latest")
     if not pkg_path.exists():
         pkg_path.mkdir(parents=True, exist_ok=True)
     tar = tarfile.open(pkg_filepath, "r:gz")
     tar.extractall(pkg_path)
     tar.close()
+    if latest_path.exists():
+        latest_path.unlink()
+    logger.info("update latest link to %s", metadata["version"])
+    os.symlink(metadata["version"], latest_path)
 
 
 def uninstall_entry(pkgs: List[str]):
