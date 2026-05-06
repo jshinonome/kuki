@@ -1,0 +1,42 @@
+version: "3"
+
+vars:
+  PYTHON3: python
+  PIP3: pip
+
+tasks:
+  default:
+    deps: [test, clean, compile]
+
+  all:
+    deps: [test, clean, compile, install]
+
+  upload:
+    deps: [test, clean, sdist]
+
+  test:
+    desc: Run pytest and kest
+    cmds:
+      - pytest
+      - kest
+
+  clean:
+    desc: Remove build artifacts
+    cmds:
+      - rm -rf build dist *.egg-info */*__pycache__ */*/*__pycache__
+
+  compile:
+    desc: Build wheel distribution
+    cmds:
+      - "{{.PYTHON3}} setup.py bdist_wheel"
+
+  install:
+    desc: Install the built wheel locally
+    cmds:
+      - "{{.PIP3}} install dist/*.whl --force-reinstall --no-deps"
+
+  sdist:
+    desc: Build and upload source distribution
+    cmds:
+      - "{{.PYTHON3}} setup.py sdist"
+      - twine upload dist/*.gz --verbose

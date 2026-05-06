@@ -135,7 +135,7 @@ parser.add_argument(
 parser.add_argument(
     "--registry",
     type=str,
-    default=config_util.DEFAULT_REGISTRY,
+    default="",
     help="the kuki package registry",
 )
 
@@ -146,8 +146,18 @@ parser.add_argument(
     help="force reinstall",
 )
 
+parser.add_argument(
+    "--insecure",
+    action="store_true",
+    default=False,
+    help="disable TLS certificate verification for HTTP requests",
+)
+
 
 def kuki(args: argparse.Namespace):
+    if args.insecure:
+        registry_util.set_insecure(True)
+
     scope: str = args.scope
     if not scope.startswith("@"):
         scope = "@" + scope
@@ -172,15 +182,7 @@ def kuki(args: argparse.Namespace):
     elif args.init:
         package_util.init()
     elif args.adduser:
-        logger.info("Create your account at:")
-        logger.info(
-            "https://kuki.auth.ap-southeast-2.amazoncognito.com/signup?client_id=6r51ebpp6o14ecqsv8mvn2o160&response_type=code&scope=aws.cognito.signin.user.admin&redirect_uri=https%3A%2F%2Fkuki.ninja"  # noqa: E501
-        )
-        input("Press ENTER to open in the browser")
-        webbrowser.open(
-            "https://kuki.auth.ap-southeast-2.amazoncognito.com/signup?client_id=6r51ebpp6o14ecqsv8mvn2o160&response_type=code&scope=aws.cognito.signin.user.admin&redirect_uri=https%3A%2F%2Fkuki.ninja",  # noqa: E501
-            new=2,
-        )
+        logger.error("'--adduser' is no longer supported, use '--login' instead")
     elif args.login:
         user = input("Username: ")
         password = getpass.getpass("Password: ")
@@ -197,7 +199,7 @@ def kuki(args: argparse.Namespace):
         if args.globalMode:
             if isinstance(args.install, list):
                 registry_util.install_global_entry(args.install, args.force)
-        elif not package_util.exits():
+        elif not package_util.exists():
             logger.error("kuki.json not found, use 'kuki --init' to init the package first")
             return
         elif args.version:

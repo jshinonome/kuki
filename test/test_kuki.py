@@ -12,6 +12,8 @@ from kuki import config_util, kuki, package_util, registry_util
 
 logger = logging.getLogger(__name__)
 
+TEST_REGISTRY = "https://test.registry.local/"
+
 
 @pytest.fixture(scope="function", autouse=True)
 def tmp_dir(tmp_path_factory: pytest.TempPathFactory, monkeypatch: pytest.MonkeyPatch):
@@ -46,8 +48,11 @@ def tmp_dir(tmp_path_factory: pytest.TempPathFactory, monkeypatch: pytest.Monkey
     package_util.package_config_path = Path.joinpath(dummy_package, package_util.config_file)
     monkeypatch.chdir(dummy_package)
 
-    registry_util.package_index = package_util.load_pkg_index()
-    registry_util.global_index = registry_util.load_global_index()
+    # Set a test registry so tests don't require a configured default
+    config_util.DEFAULT_REGISTRY = TEST_REGISTRY
+
+    registry_util._package_index = package_util.load_pkg_index()
+    registry_util._global_index = registry_util.load_global_index()
     return dir
 
 
@@ -94,7 +99,7 @@ def run_kuki(arg: str):
         (
             "--config token=t0ken",
             "t0ken",
-            config_util.DEFAULT_REGISTRY,
+            TEST_REGISTRY,
             "",
         ),
         (
@@ -173,8 +178,8 @@ def test_init(monkeypatch: pytest.MonkeyPatch):
 @pytest.mark.parametrize(
     "arg, scope",
     [
-        ("--login", ""),
-        ("--login --scope=one-punch", "@one-punch/"),
+        ("--login --registry=" + TEST_REGISTRY, ""),
+        ("--login --registry=" + TEST_REGISTRY + " --scope=one-punch", "@one-punch/"),
     ],
 )
 @responses.activate
@@ -194,7 +199,7 @@ def test_adduser(monkeypatch: pytest.MonkeyPatch, arg: str, scope: str):
     _, token, user = config_util.get_reg_cfg(scope)
     assert token == "7IForS1HdYwD7wgFxXGMTA=="
     assert user == "test"
-    assert registry == config_util.DEFAULT_REGISTRY
+    assert registry == TEST_REGISTRY
 
 
 @responses.activate
@@ -431,7 +436,7 @@ def test_install(
     package_util.generate_json(
         "dummy", "a dummy package", "Saitama", "https://github.com/saitama/dummy"
     )
-    registry_util.kuki_json = package_util.load_kuki()
+    registry_util._kuki_json = package_util.load_kuki()
     run_kuki(command_params)
     global_index = registry_util.load_global_index()
     assert len(global_index) == len(expected_index)
@@ -542,7 +547,7 @@ def test_uninstall(
     package_util.generate_json(
         "dummy", "a dummy package", "Saitama", "https://github.com/saitama/dummy"
     )
-    registry_util.kuki_json = package_util.load_kuki()
+    registry_util._kuki_json = package_util.load_kuki()
 
     run_kuki("--install csv file")
 

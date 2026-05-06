@@ -4,9 +4,9 @@ import logging
 import os
 import re
 from pathlib import Path
-from typing import Dict, TypedDict
+from typing import Dict, Tuple, TypedDict
 
-DEFAULT_REGISTRY = "https://www.kuki.ninja/"
+DEFAULT_REGISTRY = os.getenv("KUKIREGISTRY", "")
 
 DEFAULT_SCOPE = "@default/"
 
@@ -32,14 +32,13 @@ class RegistryCfg(TypedDict):
 
 
 # registry, token, user
-def get_reg_cfg(scope=DEFAULT_SCOPE) -> (str, str, str):
+def get_reg_cfg(scope=DEFAULT_SCOPE) -> Tuple[str, str, str]:
     kukirc: Dict[str, RegistryCfg] = load_config()
     if scope in kukirc:
         reg_cfg = kukirc.get(scope, {})
     else:
         reg_cfg = kukirc.get(DEFAULT_SCOPE, {})
     reg: str = reg_cfg.get("registry", DEFAULT_REGISTRY)
-    reg.endswith("/")
     return (
         reg if reg.endswith("/") else reg + "/",
         reg_cfg.get("token", ""),
@@ -62,19 +61,14 @@ def validate_scope(scope: str) -> bool:
     if re.fullmatch(pattern, scope):
         return True
     else:
-        logger.error("only allows lower cases(a-z) and hyphen(-) as the scope name")
-        exit(1)
+        raise ValueError("only allows lower cases(a-z) and hyphen(-) as the scope name")
 
 
 def update_config(field: str, value: str, scope: str):
     validate_scope(scope)
     kukirc: Dict[str, RegistryCfg] = load_config()
-    if scope in kukirc:
-        kukirc.setdefault(scope, ())
-        reg_cfg = kukirc.get(scope)
-    else:
-        kukirc.setdefault(scope, {})
-        reg_cfg = kukirc.get(scope)
+    kukirc.setdefault(scope, {})
+    reg_cfg = kukirc[scope]
     if not value:
         logger.info("Empty value for {}, removing existing value".format(field))
         if field in reg_cfg:

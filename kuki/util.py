@@ -111,11 +111,6 @@ def generate_cmd(options: List[str], env_cfg: dict[str, str]) -> str:
             else:
                 raise Exception("missing binary configuration")
         elif binary_type == "k":
-            if env_cfg.get("envPath"):
-                cmd.append("source " + env_cfg.get("envPath"))
-            if env_cfg.get("binary"):
-                cmd.append(" ".join([env_cfg.get("binary", "k"), str(k_path), *options]))
-            else:
-                raise Exception("missing binary configuration")
-            raise Exception("k is not support yet")
+            # TODO: remove this guard once k support is implemented
+            raise NotImplementedError("k binary type is not supported yet")
     return ";".join(cmd)

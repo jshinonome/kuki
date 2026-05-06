@@ -64,10 +64,10 @@ def generate_json(name: str, description="", author="", repository="", package_t
 
 
 def init():
-    dir = os.path.basename(os.getcwd())
-    package = input("package name: ({}) ".format(dir.lower())).strip()
+    dir_name = os.path.basename(os.getcwd())
+    package = input("package name: ({}) ".format(dir_name.lower())).strip()
     if not package:
-        package = dir.lower()
+        package = dir_name.lower()
 
     is_valid_name(package)
 
@@ -90,21 +90,21 @@ def dump_kuki(kuki: Kuki):
         file.write("\n")
 
 
-def exits():
+def exists():
     return package_config_path.exists()
 
 
-def roll_up_version(type: str):
+def roll_up_version(version_type: str):
     kuki: Kuki = json.loads(package_config_path.read_text())
     logger.info("roll up version")
     logger.info("from - " + kuki["version"])
     [major, minor, patch] = list(map(int, kuki["version"].split(".")))
-    if type == "patch":
+    if version_type == "patch":
         patch += 1
-    elif type == "minor":
+    elif version_type == "minor":
         minor += 1
         patch = 0
-    elif type == "major":
+    elif version_type == "major":
         major += 1
         minor = 0
         patch = 0
@@ -132,8 +132,12 @@ def load_include() -> List[str]:
 
 
 def load_readme() -> str:
-    with open(readme_path, "r") as file:
-        return file.read()
+    if readme_path.exists():
+        with open(readme_path, "r") as file:
+            return file.read()
+    else:
+        logger.warning("README.md not found, using empty readme")
+        return ""
 
 
 def load_pkg_index() -> Dict[str, Kuki]:
@@ -151,5 +155,5 @@ def dump_pkg_index(kuki_index: Dict[str, Kuki]):
 
 def is_valid_name(name: str) -> bool:
     if re.fullmatch(r"(@[a-z-]+/)?[a-z-]+", name) is None:
-        logger.error("only allows lower cases(a-z) and hyphen(-) as the package name")
-        exit(1)
+        raise ValueError("only allows lower cases(a-z) and hyphen(-) as the package name")
+    return True

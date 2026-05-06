@@ -39,8 +39,8 @@ def dump_json(path: Path, config):
         file.write(config)
 
 
-def config_file(name: str, type: str, globalMode: False):
-    if type == "profile":
+def config_file(name: str, config_type: str, globalMode: bool = False):
+    if config_type == "profile":
         path = Path.joinpath(
             global_profile_dir if globalMode else local_profile_dir,
             name + ".profile.json",
@@ -62,10 +62,10 @@ def config_file(name: str, type: str, globalMode: False):
     path.parent.mkdir(parents=True, exist_ok=True)
     if path.exists():
         config.update(json.loads(path.read_text()))
-        for key in config.keys():
-            if key not in all_keys:
-                logger.warn("unrecognized key - {}".format(key))
-                delattr(config, key)
+        unknown_keys = [k for k in config if k not in all_keys]
+        for key in unknown_keys:
+            logger.warning("unrecognized key - {}".format(key))
+            del config[key]
         keys = config.keys()
     else:
         keys = default_keys
@@ -88,8 +88,8 @@ def config_file(name: str, type: str, globalMode: False):
         dump_json(path, config_json)
 
 
-def list_config(type: str, globalMode: False):
-    if type == "profile":
+def list_config(config_type: str, globalMode: bool = False):
+    if config_type == "profile":
         path = global_profile_dir if globalMode else local_profile_dir
     else:
         path = global_process_dir if globalMode else local_process_dir
@@ -99,8 +99,10 @@ def list_config(type: str, globalMode: False):
 
 
 def start(
-    profile_name: str, process_name: str, globalMode: False, label="", debug=False, kargs=[]
+    profile_name: str, process_name: str, globalMode: bool = False, label="", debug=False, kargs=None
 ):
+    if kargs is None:
+        kargs = []
     profile_path = Path.joinpath(
         local_profile_dir,
         profile_name + ".profile.json",

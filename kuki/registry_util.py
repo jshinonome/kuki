@@ -8,15 +8,13 @@ import re
 import shutil
 import tarfile
 from pathlib import Path
-from typing import Dict, List, TypedDict
+from typing import Any, Dict, List, TypedDict
 
 import requests
 import urllib3
 from requests.auth import HTTPBasicAuth
 
 from . import config_util, package_util
-
-urllib3.disable_warnings()
 
 logger = logging.getLogger()
 
@@ -25,21 +23,62 @@ USER_API = "-/user/org.couchdb.user:"
 global_cache_dir = Path.joinpath(config_util.global_kuki_root, "_cache")
 global_index_path = Path.joinpath(config_util.global_kuki_root, ".index")
 
-kuki_json = package_util.load_kuki()
+# TLS verification — secure by default, toggled via set_insecure()
+_verify_tls = True
 
-if global_cache_dir.exists() and not global_cache_dir.is_dir():
-    os.remove(str(global_cache_dir))
 
-global_cache_dir.mkdir(parents=True, exist_ok=True)
+def set_insecure(insecure: bool):
+    """Enable or disable TLS certificate verification for all HTTP requests."""
+    global _verify_tls
+    _verify_tls = not insecure
+    if insecure:
+        urllib3.disable_warnings()
 
-package_index = package_util.load_pkg_index()
+
+# --- Lazy initialization of module-level state ---
+# These are initialized on first access to avoid side effects at import time.
+
+_kuki_json = None
+_package_index = None
+_global_index = None
+_cache_dir_initialized = False
+
+
+def _ensure_cache_dir():
+    global _cache_dir_initialized
+    if not _cache_dir_initialized:
+        if global_cache_dir.exists() and not global_cache_dir.is_dir():
+            os.remove(str(global_cache_dir))
+        global_cache_dir.mkdir(parents=True, exist_ok=True)
+        _cache_dir_initialized = True
+
+
+def _get_kuki_json() -> dict:
+    global _kuki_json
+    if _kuki_json is None:
+        _kuki_json = package_util.load_kuki()
+    return _kuki_json
+
+
+def _get_package_index() -> Dict[str, package_util.Kuki]:
+    global _package_index
+    if _package_index is None:
+        _package_index = package_util.load_pkg_index()
+    return _package_index
+
+
+def _get_global_index() -> Dict[str, package_util.Kuki]:
+    global _global_index
+    if _global_index is None:
+        _global_index = load_global_index()
+    return _global_index
 
 
 class Metadata(TypedDict):
     name: str
     version: str
-    dist: any
-    dependencies: any
+    dist: Any
+    dependencies: Any
     type: str
 
 
@@ -51,14 +90,26 @@ def load_global_index() -> Dict[str, package_util.Kuki]:
         return {}
 
 
-global_index = load_global_index()
+def _safe_extractall(tar: tarfile.TarFile, path: Path):
+    """Extract tarball with path traversal protection."""
+    import sys
+
+    if sys.version_info >= (3, 12):
+        tar.extractall(path, filter="data")
+    else:
+        resolved_path = os.path.realpath(str(path))
+        for member in tar.getmembers():
+            member_path = os.path.realpath(os.path.join(resolved_path, member.name))
+            if not member_path.startswith(resolved_path + os.sep) and member_path != resolved_path:
+                raise Exception("Attempted path traversal in tar file: {}".format(member.name))
+        tar.extractall(path)
 
 
 def add_user(user: str, password: str, email: str, scope: str, registry: str):
     user_url = registry + USER_API
     payload = {"name": user, "password": password, "email": email}
     headers = {"Accept": "application/json", "Content-Type": "application/json"}
-    res = requests.put(user_url + user, json.dumps(payload), headers=headers, verify=False)
+    res = requests.put(user_url + user, json.dumps(payload), headers=headers, verify=_verify_tls)
 
     if res.status_code == 201:
         logger.info("the user '{}' has been added for {}".format(user, registry))
@@ -72,13 +123,13 @@ def add_user(user: str, password: str, email: str, scope: str, registry: str):
 
 def login(user: str, password: str, scope: str, registry: str):
     config_util.validate_scope(scope)
-    user_url = registry + "-/user/org.couchdb.user:"
+    user_url = registry + USER_API
 
     basic_auth = HTTPBasicAuth(user, password)
     payload = {"name": user, "password": password}
     headers = {"Accept": "application/json", "Content-Type": "application/json"}
     res = requests.put(
-        user_url + user, json.dumps(payload), headers=headers, auth=basic_auth, verify=False
+        user_url + user, json.dumps(payload), headers=headers, auth=basic_auth, verify=_verify_tls
     )
     if res.status_code == 201:
         logger.info("you are authenticated as '{}'".format(user))
@@ -98,7 +149,7 @@ def login(user: str, password: str, scope: str, registry: str):
 def search_package(package: str, scope: str):
     registry, _, _ = config_util.get_reg_cfg(scope)
     search_url = registry + SEARCH_API
-    res = requests.get(search_url + package, verify=False)
+    res = requests.get(search_url + package, verify=_verify_tls)
     logger.info(
         "{:20.20} | {:20.20} | {:20.20} | {:10.10} | {:10.10} | {:10.10}".format(
             "NAME", "DESCRIPTION", "AUTHOR", "DATE", "VERSION", "KEYWORDS"
@@ -122,7 +173,7 @@ def publish_entry():
     try:
         publish_package()
     except Exception as e:
-        logger.error(e)
+        logger.error(e, exc_info=True)
 
 
 def pack_package(pkg_name: str, version: str):
@@ -164,8 +215,7 @@ def pack_entry():
         version = kuki.get("version")
         pack_package(pkg_name, version)
     except Exception as e:
-        logger.error("failed to pack")
-        logger.error(e)
+        logger.error("failed to pack", exc_info=True)
 
 
 def publish_package():
@@ -237,7 +287,7 @@ def publish_package():
         registry + scope.replace("/", "%2f") + pkg_name,
         data=json.dumps(data),
         headers=headers,
-        verify=False,
+        verify=_verify_tls,
     )
     if res.status_code not in [200, 201]:
         try:
@@ -253,13 +303,6 @@ def publish_package():
             )
         )
     logger.info("successfully published {}{}@{}".format(scope, pkg_name, version))
-    if registry == config_util.DEFAULT_REGISTRY:
-        logger.info(
-            " - {}package/{}".format(
-                registry.replace("www.", ""),
-                scope + pkg_name,
-            )
-        )
 
 
 def unpublish_package(pkg_id: str):
@@ -273,7 +316,7 @@ def unpublish_package(pkg_id: str):
         "Authorization": "Bearer {}".format(token),
     }
 
-    res = requests.get(registry + scope + pkg_name, headers=headers, verify=False)
+    res = requests.get(registry + scope + pkg_name, headers=headers, verify=_verify_tls)
     pkg: dict = res.json()
     if res.status_code != 200:
         logger.error(pkg.get("error"))
@@ -290,7 +333,7 @@ def unpublish_package(pkg_id: str):
         res = requests.delete(
             registry + scope + pkg_name + "/-rev/" + pkg.get("_rev", ""),
             headers=headers,
-            verify=False,
+            verify=_verify_tls,
         )
         if res.status_code not in [200, 201]:
             try:
@@ -327,7 +370,7 @@ def unpublish_package(pkg_id: str):
             registry + scope + pkg_name + "/-rev/" + pkg.get("_rev", ""),
             json=pkg,
             headers=headers,
-            verify=False,
+            verify=_verify_tls,
         )
         if res.status_code != 201:
             raise Exception(
@@ -338,13 +381,13 @@ def unpublish_package(pkg_id: str):
                 )
             )
         new_pkg: dict = requests.get(
-            registry + scope + pkg_name, headers=headers, verify=False
+            registry + scope + pkg_name, headers=headers, verify=_verify_tls
         ).json()
         tarball_url = dist["tarball"]
         res = requests.delete(
             tarball_url + "/-rev/" + new_pkg.get("_rev", ""),
             headers=headers,
-            verify=False,
+            verify=_verify_tls,
         )
         if res.status_code != 201:
             raise Exception(
@@ -383,7 +426,7 @@ def get_metadata(name: str) -> Metadata:
         "Authorization": "Bearer {}".format(token),
     }
     if not version:
-        res = requests.get(registry + scope + pkg_name, headers=headers, verify=False)
+        res = requests.get(registry + scope + pkg_name, headers=headers, verify=_verify_tls)
         res_json = res.json()
         if res.status_code != 200:
             raise Exception(res_json.get("error"))
@@ -393,10 +436,10 @@ def get_metadata(name: str) -> Metadata:
         res = requests.get(
             "{}{}/{}".format(registry, scope + pkg_name, version),
             headers=headers,
-            verify=False,
+            verify=_verify_tls,
         )
         if res.status_code in [405, 404]:
-            res = requests.get(registry + scope + pkg_name, headers=headers, verify=False)
+            res = requests.get(registry + scope + pkg_name, headers=headers, verify=_verify_tls)
             res_json = res.json()
             if res.status_code == 403:
                 raise Exception("'{}{}@{}' forbidden".format(scope, pkg_name, version))
@@ -425,6 +468,7 @@ def get_cached_filepath(tar_name) -> str:
 
 def download_entry(name: str):
     try:
+        _ensure_cache_dir()
         metadata = get_metadata(name)
         pkg_filepath = download_package(metadata)
         shutil.copy(pkg_filepath, os.path.basename(pkg_filepath))
@@ -433,6 +477,7 @@ def download_entry(name: str):
 
 
 def download_package(metadata: Metadata, force=False) -> str:
+    _ensure_cache_dir()
     scope, _, _ = parse_package_name(metadata["name"])
     _, token, _ = config_util.get_reg_cfg(scope)
 
@@ -444,7 +489,7 @@ def download_package(metadata: Metadata, force=False) -> str:
         headers = {
             "Authorization": "Bearer {}".format(token),
         }
-        res = requests.get(tar_url, headers=headers, verify=False)
+        res = requests.get(tar_url, headers=headers, verify=_verify_tls)
         if len(res.content) > 0:
             with open(cached_filepath, "wb") as file:
                 file.write(res.content)
@@ -454,6 +499,9 @@ def download_package(metadata: Metadata, force=False) -> str:
 
 
 def install_global_entry(pkgs: List[str], force: bool):
+    kuki_json = _get_kuki_json()
+    global_index = _get_global_index()
+    package_index = _get_package_index()
     try:
         for pkg in pkgs:
             if pkg.startswith("."):
@@ -462,10 +510,13 @@ def install_global_entry(pkgs: List[str], force: bool):
                 install_package(pkg, False, True, force)
             dump_global_index()
     except Exception as e:
-        logger.error("failed to install packages with error: {}".format(e))
+        logger.error("failed to install packages with error: {}".format(e), exc_info=True)
 
 
 def install_entry(pkgs: List[str], force: bool):
+    kuki_json = _get_kuki_json()
+    global_index = _get_global_index()
+    package_index = _get_package_index()
     try:
         for pkg in pkgs:
             if pkg.startswith("."):
@@ -477,10 +528,13 @@ def install_entry(pkgs: List[str], force: bool):
         package_util.dump_pkg_index(package_index)
         dump_global_index()
     except Exception as e:
-        logger.error("failed to install packages with error: {}".format(e))
+        logger.error("failed to install packages with error: {}".format(e), exc_info=True)
 
 
 def install_package(pkg: str, skip_updating_pkg_index=True, globalMode=False, force=False):
+    kuki_json = _get_kuki_json()
+    global_index = _get_global_index()
+    package_index = _get_package_index()
     package_type = kuki_json.get("type", "q")
 
     if package_type == "k":
@@ -547,18 +601,23 @@ def install_local_package(
     skip_updating_pkg_index=True,
     globalMode=False,
 ):
+    kuki_json = _get_kuki_json()
+    global_index = _get_global_index()
+    package_index = _get_package_index()
     logger.info("installing local package '{}'".format(local_pkg_tar))
     local_pkg_tar_path = Path(local_pkg_tar)
-    if local_pkg_tar_path.exists():
-        tar = tarfile.open(local_pkg_tar_path)
-        file = tar.extractfile("kuki.json")
-        pkg_kuki_json: package_util.Kuki = json.load(file)
+    if not local_pkg_tar_path.exists():
+        logger.error("local package tar not found: '{}'".format(local_pkg_tar))
+        return
+    tar = tarfile.open(local_pkg_tar_path)
+    file = tar.extractfile("kuki.json")
+    pkg_kuki_json: package_util.Kuki = json.load(file)
     name = pkg_kuki_json["name"]
     version = pkg_kuki_json["version"]
     install_pkg_path = get_pkg_path(name, version)
     if not install_pkg_path.exists():
         install_pkg_path.mkdir(parents=True, exist_ok=True)
-    tar.extractall(install_pkg_path)
+    _safe_extractall(tar, install_pkg_path)
     tar.close()
 
     if not skip_updating_pkg_index and not globalMode:
@@ -585,13 +644,14 @@ def install_local_package(
 
 
 def extract_package(metadata: Metadata, force=False):
+    _ensure_cache_dir()
     pkg_filepath = download_package(metadata, force)
     pkg_path = get_pkg_path(metadata["name"], metadata["version"])
     latest_path = get_pkg_path(metadata["name"], "latest")
     if not pkg_path.exists():
         pkg_path.mkdir(parents=True, exist_ok=True)
     tar = tarfile.open(pkg_filepath, "r:gz")
-    tar.extractall(pkg_path)
+    _safe_extractall(tar, pkg_path)
     tar.close()
     if latest_path.exists():
         latest_path.unlink()
@@ -600,16 +660,20 @@ def extract_package(metadata: Metadata, force=False):
 
 
 def uninstall_entry(pkgs: List[str]):
+    kuki_json = _get_kuki_json()
+    package_index = _get_package_index()
     try:
         uninstall_packages(pkgs)
         refresh_package_index()
         package_util.dump_kuki(kuki_json)
         package_util.dump_pkg_index(package_index)
     except Exception as e:
-        logger.error("failed to uninstall packages with error: {}".format(e))
+        logger.error("failed to uninstall packages with error: {}".format(e), exc_info=True)
 
 
 def refresh_package_index():
+    kuki_json = _get_kuki_json()
+    package_index = _get_package_index()
     current_package_index = package_index.copy()
     package_index.clear()
     for name in kuki_json["dependencies"].keys():
@@ -618,6 +682,7 @@ def refresh_package_index():
 
 
 def resolve_dependencies(current_package_index: Dict[str, package_util.Kuki], dep: str):
+    package_index = _get_package_index()
     deps = current_package_index[dep].get("dependencies", {})
     for name in deps.keys():
         if name not in package_index:
@@ -636,6 +701,7 @@ def newer_than(version1: str, version2: str) -> bool:
 
 
 def uninstall_packages(pkgs: List[str]):
+    kuki_json = _get_kuki_json()
     for pkg in pkgs:
         scope, pkg_name, _ = parse_package_name(pkg)
         name = scope + pkg_name
@@ -647,11 +713,15 @@ def uninstall_packages(pkgs: List[str]):
 
 
 def dump_global_index():
+    global_index = _get_global_index()
     with open(global_index_path, "w") as file:
         json.dump(global_index, file, indent=2)
 
 
 def install_dependencies():
+    kuki_json = _get_kuki_json()
+    global_index = _get_global_index()
+    package_index = _get_package_index()
     deps = kuki_json.get("dependencies", [])
     pending = []
     for name, version in deps.items():

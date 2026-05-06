@@ -26,7 +26,7 @@ def kest(args):
     if "-init" in args:
         # generate kest.json
         if kest_path.exists():
-            logger.warn("kest.json already exists, skip...")
+            logger.warning("kest.json already exists, skip...")
             return
         with open(kest_path, "w") as file:
             json.dump(KEST_DEFAULT, file, indent=2)
