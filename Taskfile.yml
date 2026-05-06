@@ -40,3 +40,12 @@ tasks:
     cmds:
       - "{{.PYTHON3}} setup.py sdist"
       - twine upload dist/*.gz --verbose
+
+  tag:
+    desc: Create annotated git tag v* from kuki/version.py and push to origin
+    cmds:
+      - |
+        set -euo pipefail
+        VERSION="$({{.PYTHON3}} -c 'from pathlib import Path; ns={}; exec(Path("kuki/version.py").read_text(), ns); print(ns["__version__"])')"
+        git tag -a "v${VERSION}" -m "Release v${VERSION}"
+        git push origin "v${VERSION}"
